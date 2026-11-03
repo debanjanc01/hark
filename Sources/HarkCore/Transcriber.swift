@@ -54,16 +54,7 @@ public actor Transcriber {
             output = [CChar](repeating: 0, count: needed)
         }
         let keywordList = keywords.isEmpty ? nil : keywords.joined(separator: "\n")
-        let status = samples.withUnsafeBufferPointer { pcm in
-            withOptionalCString(language) { language in
-                withOptionalCString(keywordList) { keywords in
-                    output.withUnsafeMutableBufferPointer { out in
-                        needle_transcribe(pcm.baseAddress, Int32(pcm.count), language, keywords, 0,
-                                          out.baseAddress, Int32(out.count))
-                    }
-                }
-            }
-        }
+        let status = Self.run(samples, language: language, keywords: keywordList, output: &output)
         guard status >= 0 else { throw TranscriberError.transcriptionFailed(Self.lastError()) }
 
         let json = output.withUnsafeBufferPointer { String(cString: $0.baseAddress!) }
@@ -73,6 +64,20 @@ public actor Transcriber {
             return try decoder.decode(Transcript.self, from: Data(json.utf8))
         } catch {
             throw TranscriberError.transcriptionFailed("unexpected engine output")
+        }
+    }
+
+    private static func run(_ samples: [Float], language: String?, keywords: String?,
+                            output: inout [CChar]) -> Int32 {
+        samples.withUnsafeBufferPointer { pcm in
+            withOptionalCString(language) { language in
+                withOptionalCString(keywords) { keywords in
+                    output.withUnsafeMutableBufferPointer { out in
+                        needle_transcribe(pcm.baseAddress, Int32(pcm.count), language, keywords, 0,
+                                          out.baseAddress, Int32(out.count))
+                    }
+                }
+            }
         }
     }
 
