@@ -31,7 +31,7 @@ public enum Hotkey: String, CaseIterable, Sendable {
 }
 
 /// Watches a hold-to-talk modifier key system-wide with a listen-only event tap.
-/// Requires the Input Monitoring permission.
+/// Requires the Accessibility permission.
 @MainActor
 public final class HotkeyMonitor {
     public var hotkey: Hotkey
@@ -52,7 +52,7 @@ public final class HotkeyMonitor {
         self.hotkey = hotkey
     }
 
-    /// Returns false if the event tap could not be created (missing Input Monitoring permission).
+    /// Returns false if the event tap could not be created (missing Accessibility permission).
     @discardableResult
     public func start() -> Bool {
         guard tap == nil else { return true }
@@ -67,14 +67,6 @@ public final class HotkeyMonitor {
         self.tap = tap
         self.source = source
         return true
-    }
-
-    public func stop() {
-        if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
-        if let tap { CGEvent.tapEnable(tap: tap, enable: false) }
-        tap = nil
-        source = nil
-        isHeld = false
     }
 
     fileprivate func handle(_ type: CGEventType, keyCode: Int64, flags: CGEventFlags) {

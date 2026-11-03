@@ -43,7 +43,7 @@ Works in any app: your editor, terminal, browser, Slack, Claude Code. Dictate tw
 
 From the menu bar icon you can change the hotkey (Right Option, Right Command or Fn), set the language, hide the pill, launch at login, or add **Custom Words**: names and jargon Hark keeps mishearing (like a teammate's name).
 
-On first launch macOS asks for **Microphone** (to hear you), **Input Monitoring** (to see the hotkey from any app) and **Accessibility** (to paste the text). If one is missing, the menu bar icon gets a slash and the menu links you to the right setting.
+On first launch Hark opens a small window asking for **Microphone** (to hear you) and **Accessibility** (to notice the hotkey in any app and paste the text). Open Hark again anytime to bring that window back.
 
 ## Good to know
 
@@ -55,11 +55,12 @@ On first launch macOS asks for **Microphone** (to hear you), **Input Monitoring*
 
 ## Something off?
 
-- **Nothing happens when I hold the key:** turn on Input Monitoring for Hark, then reopen it.
+- **Nothing happens when I hold the key:** open Hark again. The window shows what's missing.
+- **No menu bar icon:** your menu bar is full and macOS hid it behind the notch. Hold ⌘ and drag other icons off to make room.
 - **The pill shows but no text appears:** turn on Accessibility for Hark.
 - **"No speech heard":** move a bit closer to the mic, and check the right input is picked in System Settings → Sound.
 - **First word cut off, or not sure the mic works?** Run `/Applications/Hark.app/Contents/MacOS/Hark --mic-check`. It shows how fast recording starts (about 150 ms is normal).
-- **Permissions broke after an update:** remove Hark from those three lists in System Settings and allow it again.
+- **Permissions broke after an update:** remove Hark from Microphone and Accessibility in System Settings and allow it again.
 
 ## Build it yourself
 

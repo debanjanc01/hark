@@ -6,10 +6,6 @@ public struct Transcript: Sendable, Equatable, Decodable {
     public let text: String
     /// ISO 639-1 code of the language used, or empty for silence/noise.
     public let language: String
-    /// Milliseconds until the first token was decoded.
-    public let ttftMs: Double
-    /// Decoder throughput after the first token.
-    public let decodeTps: Double
 }
 
 public enum TranscriberError: Error, Equatable, LocalizedError {

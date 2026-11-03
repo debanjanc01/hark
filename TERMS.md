@@ -16,7 +16,7 @@ Short version: Hark is free, open source and runs only on your Mac. Use it howev
 
 ## Permissions
 
-Hark asks for Microphone, Input Monitoring and Accessibility. It only uses them to hear you while you hold the key, notice the key and paste the text. You can turn any of them off anytime in System Settings → Privacy & Security.
+Hark asks for Microphone and Accessibility. It only uses them to hear you while you hold the key, notice the key and paste the text. You can turn any of them off anytime in System Settings → Privacy & Security.
 
 ## Third-party parts
 

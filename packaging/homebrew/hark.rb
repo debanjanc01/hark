@@ -35,7 +35,7 @@ class Hark < Formula
       To add Hark to your Applications folder (so Spotlight and Launch at Login find it):
         ln -sf #{opt_prefix}/Hark.app /Applications/Hark.app
 
-      Then open it, and grant Microphone, Input Monitoring and Accessibility when asked.
+      Then open it, and grant Microphone and Accessibility when asked.
     EOS
   end
 

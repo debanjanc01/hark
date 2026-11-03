@@ -2,7 +2,7 @@
 # End-to-end test of the real app: real hotkey events, real microphone (speech is played
 # through the speakers with `say`), real paste into a text field.
 #
-# Run from a terminal that has Microphone, Input Monitoring and Accessibility access; the
+# Run from a terminal that has Microphone and Accessibility access; the
 # app inherits them. Keep the room quiet and don't touch the keyboard or mouse (~40 s).
 #
 # Usage: scripts/e2e/run.sh [path/to/Hark.app]

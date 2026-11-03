@@ -159,7 +159,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 }
 
 @MainActor
-private final class ClosureTarget: NSObject {
+final class ClosureTarget: NSObject {
     private let handler: @MainActor () -> Void
     init(_ handler: @escaping @MainActor () -> Void) { self.handler = handler }
     @objc func invoke() { handler() }

@@ -10,6 +10,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.start()
         self.controller = controller
     }
+
+    /// Opening Hark while it runs shows the setup window: the menu bar icon may be hidden.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        controller?.showSetup()
+        return false
+    }
 }
 
 /// `Hark --transcribe <audio file> [--language en] [--keywords "Priya,Kubernetes"] [--repeat N]`:
@@ -91,6 +97,16 @@ if CommandLine.arguments.contains("--mic-check") {
 
 if CommandLine.arguments.contains("--transcribe") {
     Task(priority: .userInitiated) { exit(await transcribeFromCommandLine(CommandLine.arguments)) }
+    dispatchMain()
+}
+
+// Only one Hark at a time: two would fight over the hotkey and the menu bar. If another
+// copy (say, an older build) is already running, bring that one forward instead.
+if let id = Bundle.main.bundleIdentifier,
+   let running = NSRunningApplication.runningApplications(withBundleIdentifier: id)
+       .first(where: { $0.processIdentifier != getpid() }),
+   let url = running.bundleURL {
+    NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration()) { _, _ in exit(0) }
     dispatchMain()
 }
 

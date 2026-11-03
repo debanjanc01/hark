@@ -24,6 +24,7 @@ final class DictationController {
     private let hotkeys: HotkeyMonitor
     private let statusItem: StatusItemController
     private let indicator = IndicatorPanel()
+    private let setup = SetupWindow()
     private var transcriber: Transcriber?
     private var state = State.loading
     private var animation: Timer?
@@ -43,7 +44,7 @@ final class DictationController {
 
     func start() {
         loadModel()
-        Task { await requestPermissions() }
+        checkPermissionsOnLaunch()
     }
 
     // MARK: Setup
@@ -82,20 +83,29 @@ final class DictationController {
         return FileManager.default.fileExists(atPath: checkout.path) ? checkout : nil
     }
 
-    private func requestPermissions() async {
-        if !Permission.microphone.isGranted { await Permission.microphone.request() }
+    /// Missing permissions are explained in the welcome window first; macOS only asks
+    /// once the person clicks Allow there.
+    private func checkPermissionsOnLaunch() {
+        if Permission.allCases.contains(where: { !$0.isGranted }) { showSetup() }
+        checkPermissions()
+    }
+
+    /// Shows the setup window (also used when Hark is opened again while it's running).
+    func showSetup() {
+        setup.show(hotkey: settings.hotkey)
+        checkPermissions()
+    }
+
+    private func checkPermissions() {
+        setup.refresh(hotkey: settings.hotkey)
         if Permission.microphone.isGranted { recorder.prepare() }
-        if !Permission.accessibility.isGranted { await Permission.accessibility.request() }
-        if !hotkeys.start() {
-            await Permission.inputMonitoring.request()
-            // macOS doesn't notify when Input Monitoring is granted, so retry until it is.
-            permissionPoll = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [unowned self] _ in
-                MainActor.assumeIsolated {
-                    guard hotkeys.start() else { return }
-                    permissionPoll?.invalidate()
-                    permissionPoll = nil
-                    refreshStatus()
-                }
+        if hotkeys.start(), Permission.allCases.allSatisfy(\.isGranted) {
+            permissionPoll?.invalidate()
+            permissionPoll = nil
+        } else if permissionPoll == nil {
+            // macOS doesn't announce permission changes, so check until everything is in place.
+            permissionPoll = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [unowned self] _ in
+                MainActor.assumeIsolated { checkPermissions() }
             }
         }
         refreshStatus()
