@@ -47,7 +47,7 @@ Installed Hark with `brew install debanjanc01/tap/hark` before? Switch with `bre
 
 Works in any app: your editor, terminal, browser, Slack, Claude Code. Dictate twice in a row and Hark adds the space between sentences for you.
 
-From the menu bar icon you can change the hotkey (Right Option, Right Command or Fn), set the language, hide the pill, launch at login, or add **Custom Words**: names and jargon Hark keeps mishearing (like a teammate's name).
+From the menu bar icon, or the window you get by opening Hark again, you can change the hotkey (Right Option, Right Command or Fn), set the language, add **Custom Words** (names and jargon Hark keeps mishearing, like a teammate's name), hide the pill, or launch at login.
 
 On first launch Hark opens a small window asking for **Microphone** (to hear you) and **Accessibility** (to notice the hotkey in any app and paste the text). Open Hark again anytime to bring that window back.
 
