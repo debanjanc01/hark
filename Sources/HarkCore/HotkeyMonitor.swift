@@ -1,3 +1,4 @@
+import ApplicationServices
 import CoreGraphics
 import os
 
@@ -52,10 +53,13 @@ public final class HotkeyMonitor {
         self.hotkey = hotkey
     }
 
-    /// Returns false if the event tap could not be created (missing Accessibility permission).
+    /// Returns false until Hark has the Accessibility permission. macOS creates a tap without
+    /// it too, but that tap never receives key events, even after access is granted, so
+    /// don't create one until then.
     @discardableResult
     public func start() -> Bool {
         guard tap == nil else { return true }
+        guard AXIsProcessTrusted() else { return false }
         let mask = CGEventMask(1 << CGEventType.flagsChanged.rawValue) | CGEventMask(1 << CGEventType.keyDown.rawValue)
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap, place: .headInsertEventTap, options: .listenOnly,
