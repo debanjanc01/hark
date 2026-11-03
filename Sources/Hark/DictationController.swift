@@ -32,7 +32,10 @@ final class DictationController {
     init() {
         hotkeys = HotkeyMonitor(hotkey: settings.hotkey)
         statusItem = StatusItemController(settings: settings)
-        hotkeys.onPress = { [unowned self] in startListening() }
+        hotkeys.onPress = { [unowned self] in
+            Self.log.debug("Hotkey pressed in state \(String(describing: self.state), privacy: .public)")
+            startListening()
+        }
         hotkeys.onRelease = { [unowned self] in finishListening() }
         hotkeys.onCancel = { [unowned self] in cancelListening() }
         statusItem.onSettingsChanged = { [unowned self] in hotkeys.hotkey = settings.hotkey }
@@ -57,6 +60,7 @@ final class DictationController {
                 case .success(let transcriber):
                     self.transcriber = transcriber
                     state = .idle
+                    Self.log.info("Model loaded")
                     refreshStatus()
                 case .failure(let error):
                     fail(error.localizedDescription)
@@ -136,15 +140,16 @@ final class DictationController {
     }
 
     private func transcribe(heldFor duration: Duration) {
-        let (samples, heardSpeech) = recorder.stop()
+        let (samples, speechFrames) = recorder.stop()
         stopAnimation()
+        Self.log.debug("Heard \(speechFrames) speech frames in \(Double(samples.count) / Double(Transcriber.sampleRate), format: .fixed(precision: 1))s")
 
         // Skip accidental taps, and recordings where only background sound (or nobody) was heard.
         guard duration >= Self.minimumDuration, let transcriber else {
             returnToIdle()
             return
         }
-        guard heardSpeech else {
+        guard speechFrames >= VoiceMeter.minimumSpeechFrames else {
             returnToIdle(message: "No speech heard")
             return
         }

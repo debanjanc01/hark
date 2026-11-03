@@ -76,6 +76,30 @@ struct VoiceMeterTests {
         #expect(nearActive > 3 * backgroundActive)
     }
 
+    @Test func micWarmUpSilenceDoesNotTurnRoomNoiseIntoSpeech() {
+        // A mic delivers near-silence for its first few frames; that mustn't become the room level.
+        var meter = VoiceMeter()
+        meter.reset()
+        _ = levels(Fixtures.silence(seconds: 0.09) + Fixtures.whiteNoise(seconds: 2, rms: 0.005), meter: &meter)
+        #expect(meter.speechFrames == 0)
+    }
+
+    @Test func backToBackRecordingsRegisterSpeechEqually() throws {
+        // The room level carries over between recordings, and must not creep up during speech.
+        let take = Fixtures.mix(Fixtures.whiteNoise(seconds: 4, rms: 0.002),
+                                Fixtures.scaled(try Fixtures.speech("Then send the notes to the team."), toRMS: 0.04),
+                                at: 4000)
+        var meter = VoiceMeter()
+        var frames: [Int] = []
+        for _ in 0..<3 {
+            meter.reset()
+            _ = levels(take, meter: &meter)
+            frames.append(meter.speechFrames)
+        }
+        #expect(frames[0] > 20)
+        #expect(frames.allSatisfy { Double($0) >= Double(frames[0]) * 0.8 })
+    }
+
     @Test func resetClearsState() throws {
         var meter = VoiceMeter()
         meter.feed(Fixtures.mix(Fixtures.whiteNoise(seconds: 2, rms: 0.002),

@@ -80,8 +80,8 @@ public final class AudioRecorder {
         }
     }
 
-    /// Stops recording and returns the captured audio, plus whether the person spoke.
-    public func stop() -> (samples: [Float], heardSpeech: Bool) {
+    /// Stops recording and returns the captured audio, plus how much of it was the person speaking.
+    public func stop() -> (samples: [Float], speechFrames: Int) {
         engine?.inputNode.removeTap(onBus: 0)
         engine?.pause()
         return capture.finish()
@@ -156,13 +156,13 @@ private final class Capture: Sendable {
         }
     }
 
-    func finish() -> (samples: [Float], heardSpeech: Bool) {
+    func finish() -> (samples: [Float], speechFrames: Int) {
         state.withLockUnchecked { state in
             defer {
                 state.samples = []
                 state.converter = nil
             }
-            return (state.samples, state.meter.heardSpeech)
+            return (state.samples, state.meter.speechFrames)
         }
     }
 

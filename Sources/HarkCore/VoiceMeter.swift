@@ -15,8 +15,12 @@ public struct VoiceMeter {
 
     public var gateDB: Float
     public private(set) var level: Float = 0
-    /// Whether any frame since the last `reset()` was near-field speech.
-    public private(set) var heardSpeech = false
+    /// How many 30 ms frames since the last `reset()` were near-field speech.
+    public private(set) var speechFrames = 0
+    /// Whether there was enough near-field speech to be worth transcribing. A few stray
+    /// frames (a cough, a door) would otherwise make the model hallucinate ("Thank you.").
+    public var heardSpeech: Bool { speechFrames >= Self.minimumSpeechFrames }
+    public static let minimumSpeechFrames = 6  // 180 ms
 
     private static let fftSize = 512
     private static let binHz = Float(Transcriber.sampleRate) / Float(fftSize)
@@ -33,17 +37,24 @@ public struct VoiceMeter {
     private var power = [Float](repeating: 0, count: fftSize / 2)
     private var logs = [Float](repeating: 0, count: voiceBins.count)
     private var roomDB: Float?
+    /// Frames to skip at the start of a recording: the mic delivers near-silence while it
+    /// wakes up, which would otherwise drag the room level far below the real one.
+    private static let warmupFrameCount = 3
+    private var warmupFrames = warmupFrameCount
 
     public init(gateDB: Float = 6) {
         self.gateDB = gateDB
         pending.reserveCapacity(4 * Self.frameSize)
     }
 
+    /// Starts a new recording. The room's background level is kept: it's the best guess
+    /// for the next recording too, and learning it from scratch every time made the start
+    /// of each recording count room noise as speech.
     public mutating func reset() {
         pending.removeAll(keepingCapacity: true)
-        roomDB = nil
         level = 0
-        heardSpeech = false
+        speechFrames = 0
+        warmupFrames = Self.warmupFrameCount
     }
 
     /// Feeds 16 kHz mono samples; `level` reflects the most recent complete frame.
@@ -80,15 +91,23 @@ public struct VoiceMeter {
         let total = vDSP.sum(power[Self.analysisBins])
         let voice = vDSP.sum(power[Self.voiceBins])
         let db = 10 * log10(max(total, 1e-12))
+        if warmupFrames > 0 {
+            warmupFrames -= 1
+            level = 0
+            return
+        }
 
-        // Background level falls quickly and rises slowly, so speech bursts barely move it.
         let room = roomDB ?? db
-        roomDB = room + (db - room) * (db < room ? 0.05 : 0.008)
-
         let above = db - room - gateDB
         let isSpeech = above > 0 && voice / max(total, 1e-12) > 0.6 && voiceFlatness() < 0.4
         level = isSpeech ? min(1, 0.25 + above / 18) : 0
-        heardSpeech = heardSpeech || isSpeech
+
+        // Learn the background level from everything except the person's speech: it falls
+        // quickly and rises slowly, so it settles on the room's steady noise.
+        if !isSpeech {
+            roomDB = room + (db - room) * (db < room ? 0.05 : 0.008)
+        }
+        if isSpeech { speechFrames += 1 }
     }
 
     /// Spectral flatness of the voice band (geometric over arithmetic mean):

@@ -48,7 +48,8 @@ On first launch macOS asks for **Microphone** (to hear you), **Input Monitoring*
 ## Good to know
 
 - **7 languages:** English, German, French, Spanish, Italian, Dutch and Polish. Defaults to your Mac's language, or switch to auto-detect.
-- **Ignores the room.** Background voices, TV and fan noise don't count as you talking. If only background sound was heard, nothing gets pasted.
+- **Ignores the room.** Fan noise, hum and distant voices don't count as you talking, and if that's all Hark heard, nothing gets pasted. Someone talking right next to your mic can still get picked up, though.
+- **Names and accents.** It's a small model, so it can trip on names ("Priya" → "Prea") and accent-dependent words. Add those to Custom Words and it gets them right.
 - **The mic is only on while you hold the key.** Audio is never saved. Your clipboard is restored after pasting. More in [SECURITY.md](SECURITY.md).
 - **Want the biggest model instead?** If you need the most accuracy on hard audio, many languages, or AI rewriting of what you said, a heavier app running a large model is the better pick. Hark is for fast, everyday dictation with the smallest footprint.
 
@@ -67,6 +68,8 @@ git clone https://github.com/debanjanc01/hark && cd hark
 make test      # downloads the engine + model (pinned and checksum-checked), runs the tests
 make install   # builds Hark.app, copies it to /Applications, opens it
 ```
+
+`scripts/e2e/run.sh` tests the real app end to end: it holds the hotkey, plays speech through your speakers with `say`, and checks what gets pasted into a test window (run it in a quiet room, from a terminal with the three permissions).
 
 Needs the Xcode Command Line Tools (`xcode-select --install`). It's plain Swift: `Sources/HarkCore` has the logic (recording, voice detection, transcription, hotkey, pasting), `Sources/Hark` is the menu bar app. You can also transcribe a file with `Hark.app/Contents/MacOS/Hark --transcribe note.m4a`.
 
