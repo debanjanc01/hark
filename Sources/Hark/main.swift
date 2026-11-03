@@ -86,6 +86,21 @@ func micCheck() async -> Int32 {
     return 0
 }
 
+/// Hark shows no menu bar of its own, but its text fields (the try-it box, Custom Words)
+/// still need the Edit menu's shortcuts: ⌘V is how Hark pastes, even into itself.
+@MainActor
+func editMenu() -> NSMenu {
+    let edit = NSMenu(title: "Edit")
+    for (title, action, key) in [("Undo", "undo:", "z"), ("Redo", "redo:", "Z"), ("Cut", "cut:", "x"),
+                                 ("Copy", "copy:", "c"), ("Paste", "paste:", "v"), ("Select All", "selectAll:", "a")] {
+        edit.addItem(withTitle: title, action: Selector(action), keyEquivalent: key)
+    }
+    let menu = NSMenu()
+    menu.addItem(NSMenuItem())  // the app menu
+    menu.addItem(withTitle: "Edit", action: nil, keyEquivalent: "").submenu = edit
+    return menu
+}
+
 extension Array {
     subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil }
 }
@@ -115,5 +130,6 @@ MainActor.assumeIsolated {
     let delegate = AppDelegate()
     app.delegate = delegate
     app.setActivationPolicy(.accessory)  // menu bar only, no Dock icon
+    app.mainMenu = editMenu()
     app.run()
 }

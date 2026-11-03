@@ -41,6 +41,13 @@ public final class Settings {
         set { defaults.set(newValue, forKey: "showsIndicator") }
     }
 
+    /// Whether Hark has turned on Launch at Login once, at first setup. After that, only
+    /// the person changes it.
+    public var offeredLaunchAtLogin: Bool {
+        get { defaults.bool(forKey: "offeredLaunchAtLogin") }
+        set { defaults.set(newValue, forKey: "offeredLaunchAtLogin") }
+    }
+
     /// Words or phrases to bias recognition towards (names, jargon).
     public var keywords: [String] {
         get { defaults.stringArray(forKey: "keywords") ?? [] }

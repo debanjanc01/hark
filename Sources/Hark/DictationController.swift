@@ -24,7 +24,7 @@ final class DictationController {
     private let hotkeys: HotkeyMonitor
     private let statusItem: StatusItemController
     private let indicator = IndicatorPanel()
-    private let setup = SetupWindow()
+    private let setup: SetupWindow
     private var transcriber: Transcriber?
     private var state = State.loading
     private var animation: Timer?
@@ -33,6 +33,7 @@ final class DictationController {
     init() {
         hotkeys = HotkeyMonitor(hotkey: settings.hotkey)
         statusItem = StatusItemController(settings: settings)
+        setup = SetupWindow(settings: settings)
         hotkeys.onPress = { [unowned self] in
             Self.log.debug("Hotkey pressed in state \(String(describing: self.state), privacy: .public)")
             startListening()
@@ -92,12 +93,12 @@ final class DictationController {
 
     /// Shows the setup window (also used when Hark is opened again while it's running).
     func showSetup() {
-        setup.show(hotkey: settings.hotkey)
+        setup.show()
         checkPermissions()
     }
 
     private func checkPermissions() {
-        setup.refresh(hotkey: settings.hotkey)
+        setup.refresh()
         if Permission.microphone.isGranted { recorder.prepare() }
         if hotkeys.start(), Permission.allCases.allSatisfy(\.isGranted) {
             permissionPoll?.invalidate()
@@ -161,6 +162,7 @@ final class DictationController {
         }
         guard speechFrames >= VoiceMeter.minimumSpeechFrames else {
             returnToIdle(message: "No speech heard")
+            setup.noSpeechHeard()
             return
         }
 
@@ -184,6 +186,7 @@ final class DictationController {
                     """)
                 if text.isEmpty {
                     returnToIdle(message: "No speech heard")
+                    setup.noSpeechHeard()
                 } else {
                     returnToIdle()
                     await TextInserter.insert(text)
