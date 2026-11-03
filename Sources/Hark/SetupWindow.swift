@@ -179,18 +179,21 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
         wordsColumn.alignment = .leading
         wordsColumn.spacing = 4
 
+        let indicator = NSButton(checkboxWithTitle: "Show On-Screen Indicator",
+                                 target: self, action: #selector(toggleIndicator))
+        indicator.state = settings.showsIndicator ? .on : .off
+
+        // In the menu's order.
         let grid = NSGridView(views: [
             [label("Hotkey", width: 104), hotkey],
             [label("Language", width: 104), language],
+            [NSGridCell.emptyContentView, indicator],
             [label("Custom words", width: 104), wordsColumn],
+            [NSGridCell.emptyContentView, launchAtLogin],
         ])
         grid.rowSpacing = 10
         grid.columnSpacing = 8
         grid.rowAlignment = .firstBaseline
-
-        let indicator = NSButton(checkboxWithTitle: "Show On-Screen Indicator",
-                                 target: self, action: #selector(toggleIndicator))
-        indicator.state = settings.showsIndicator ? .on : .off
 
         let footnote = label("These settings are also under the waveform icon in the menu bar.", style: .callout)
         footnote.textColor = .secondaryLabelColor
@@ -203,7 +206,7 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
         buttons.widthAnchor.constraint(equalToConstant: 392).isActive = true
 
         return [label("Hark is ready. Try it here.", style: .title2), field, result,
-                separator(), grid, indicator, launchAtLogin, footnote, buttons]
+                separator(), grid, footnote, buttons]
     }
 
     func controlTextDidChange(_ notification: Notification) {
