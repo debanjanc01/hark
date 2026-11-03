@@ -48,8 +48,12 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
         window.contentView = stack
         window.setContentSize(stack.fittingSize)
         // macOS hands focus back to the previous app after its prompt or System Settings,
-        // so come back here for the next step.
-        if newlyGranted, window.isVisible { focus() }
+        // so come back here for the next step. Once the last one is granted, come back
+        // even if the window was closed meanwhile: the next step is trying Hark.
+        if newlyGranted, window.isVisible || ready {
+            if !window.isVisible { window.center() }
+            focus()
+        }
     }
 
     /// The last dictation found no speech; say so if the person is trying Hark here.
@@ -109,9 +113,13 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
 
     @objc private func allow(_ sender: NSButton) {
         let permission = Permission.allCases[sender.tag]
+        let asksInPlace = permission.asksInPlace
         Task {
             await permission.request()
             refresh()
+            // The prompt is answered, Allow or not, and macOS has handed focus back to the
+            // previous app: come back here for the next step.
+            if asksInPlace, window.isVisible { focus() }
         }
     }
 

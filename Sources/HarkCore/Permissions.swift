@@ -33,6 +33,13 @@ public enum Permission: CaseIterable, Sendable {
         }
     }
 
+    /// Whether `request()` will show a prompt that's answered in place. Otherwise it leads to
+    /// System Settings: always for Accessibility, and for the microphone once it was answered.
+    @MainActor
+    public var asksInPlace: Bool {
+        self == .microphone && AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined
+    }
+
     /// Shows the system prompt where macOS offers one, otherwise opens the Settings pane.
     @MainActor
     public func request() async {

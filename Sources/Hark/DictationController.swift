@@ -87,7 +87,9 @@ final class DictationController {
     /// Missing permissions are explained in the welcome window first; macOS only asks
     /// once the person clicks Allow there.
     private func checkPermissionsOnLaunch() {
-        if Permission.allCases.contains(where: { !$0.isGranted }) { showSetup() }
+        // Also while the ready screen hasn't been seen: macOS relaunches Hark ("Quit & Reopen")
+        // when the microphone is allowed in System Settings, which can be the last step.
+        if Permission.allCases.contains(where: { !$0.isGranted }) || !settings.offeredLaunchAtLogin { showSetup() }
         checkPermissions()
     }
 
