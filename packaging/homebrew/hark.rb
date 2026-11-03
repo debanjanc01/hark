@@ -14,11 +14,12 @@ cask "hark" do
 
   app "Hark.app"
 
-  # Launch at Login is a LaunchAgent that Hark writes; remove it with the app.
-  uninstall quit:      "io.github.debanjanc01.hark",
-            launchctl: "io.github.debanjanc01.hark"
+  uninstall quit: "io.github.debanjanc01.hark"
 
-  zap trash: "~/Library/Preferences/io.github.debanjanc01.hark.plist"
+  # Launch at Login is a LaunchAgent that Hark writes. Only zap removes it: `uninstall`
+  # also runs on every upgrade, which would turn Launch at Login off.
+  zap launchctl: "io.github.debanjanc01.hark",
+      trash:     "~/Library/Preferences/io.github.debanjanc01.hark.plist"
 
   caveats <<~EOS
     Hark isn't notarized by Apple yet, so macOS blocks its first launch. Open it, then go to
