@@ -28,25 +28,35 @@ jobs:
       - name: Build app
         run: make app
 
-  # Builds Hark the way `brew install` does, from this commit, so a formula or build
-  # problem shows up here rather than in the release's bottle job.
+  # Installs the release zip this commit builds with the cask in packaging/homebrew, the
+  # way `brew install --cask` does, so a packaging problem shows up before a release.
   homebrew:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - name: Use the newest Xcode
         run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)"
-      - name: Install with Homebrew from this commit
-        env:
-          HOMEBREW_NO_INSTALL_FROM_API: 1
+      - uses: actions/cache@v4
+        with:
+          path: vendor
+          key: vendor-${{ hashFiles('scripts/fetch-deps.sh') }}
+      - name: Install with the cask
         run: |
-          tarball=$RUNNER_TEMP/hark-$(cat VERSION).tar.gz
-          git archive --format=tar.gz --prefix="hark-$(cat VERSION)/" -o "$tarball" HEAD
+          make deps dist
+          zip=$PWD/build/Hark-$(cat VERSION).zip
           brew tap debanjanc01/tap
-          brew trust --formula debanjanc01/tap/hark || true
-          sed -e "s|^  url \".*\"|  url \"file://$tarball\"|" \
-              -e "s|^  sha256 \".*\"|  sha256 \"$(shasum -a 256 "$tarball" | cut -d' ' -f1)\"|" \
-              -e "s|^  url .*|&\n  version \"$(cat VERSION)\"|" \
-            packaging/homebrew/hark.rb > "$(brew --repo debanjanc01/tap)/Formula/hark.rb"
-          brew install --build-bottle debanjanc01/tap/hark
-          brew test debanjanc01/tap/hark
+          brew trust --cask debanjanc01/tap/hark || true
+          sed -e "s|^  version \".*\"|  version \"$(cat VERSION)\"|" \
+              -e "s|^  sha256 \".*\"|  sha256 \"$(shasum -a 256 "$zip" | cut -d' ' -f1)\"|" \
+              -e "s|^  url \".*\"|  url \"file://$zip\"|" \
+            packaging/homebrew/hark.rb > "$(brew --repo debanjanc01/tap)/Casks/hark.rb"
+          brew install --cask debanjanc01/tap/hark
+      - name: Transcribe with the installed app
+        run: |
+          say -o "$RUNNER_TEMP/hark.aiff" "Hark is listening."
+          /Applications/Hark.app/Contents/MacOS/Hark --transcribe "$RUNNER_TEMP/hark.aiff" --language en | tee "$RUNNER_TEMP/out.json"
+          grep -qi listening "$RUNNER_TEMP/out.json"
+      - name: Uninstall with the cask
+        run: |
+          brew uninstall --cask debanjanc01/tap/hark
+          test ! -e /Applications/Hark.app
