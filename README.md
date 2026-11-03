@@ -26,15 +26,18 @@ That's possible because of [Whistle](https://cactuscompute.com/blog/whistle), a 
 Apple Silicon Mac, macOS 13 or newer.
 
 ```sh
-brew trust --formula debanjanc01/tap/hark
-brew install debanjanc01/tap/hark
-ln -sf "$(brew --prefix)/opt/hark/Hark.app" /Applications/Hark.app
+brew trust --cask debanjanc01/tap/hark
+brew install --cask debanjanc01/tap/hark
 open /Applications/Hark.app
 ```
 
 The first line is Homebrew's [tap trust](https://docs.brew.sh/Tap-Trust): it lets Homebrew install Hark from this tap, and nothing else from it.
 
-Or grab the zip from [Releases](https://github.com/debanjanc01/hark/releases/latest) and drag Hark to Applications. Since it isn't signed by Apple yet, macOS blocks the first launch: go to System Settings → Privacy & Security and hit **Open Anyway**. (Homebrew installs it without that check, so you skip this.)
+Hark isn't notarized by Apple yet, so macOS blocks the first launch. Go to System Settings → Privacy & Security, scroll down and click **Open Anyway**. You only do this once.
+
+Or grab the zip from [Releases](https://github.com/debanjanc01/hark/releases/latest) and drag Hark to Applications (same one-time **Open Anyway**).
+
+Installed Hark with `brew install debanjanc01/tap/hark` before? Switch with `brew uninstall hark`, then the commands above.
 
 ## Use it
 
