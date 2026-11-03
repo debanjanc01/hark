@@ -14,10 +14,25 @@ public final class Settings {
         set { defaults.set(newValue.rawValue, forKey: "hotkey") }
     }
 
-    /// One of `Transcriber.languages`, or nil to auto-detect.
+    /// One of `Transcriber.languages`, or nil to auto-detect. Defaults to the Mac's
+    /// language when supported: auto-detection can mistake short English phrases for
+    /// another language.
     public var language: String? {
-        get { defaults.string(forKey: "language").flatMap { Transcriber.languages.contains($0) ? $0 : nil } }
-        set { defaults.set(newValue, forKey: "language") }
+        get {
+            switch defaults.string(forKey: "language") {
+            case "auto": nil
+            case let code? where Transcriber.languages.contains(code): code
+            default: Self.systemLanguage
+            }
+        }
+        set { defaults.set(newValue ?? "auto", forKey: "language") }
+    }
+
+    /// The first of the person's preferred languages that Whistle supports.
+    public static var systemLanguage: String? {
+        Locale.preferredLanguages.lazy
+            .compactMap { Locale(identifier: $0).language.languageCode?.identifier }
+            .first { Transcriber.languages.contains($0) }
     }
 
     /// Whether to show the floating indicator near the bottom of the screen.

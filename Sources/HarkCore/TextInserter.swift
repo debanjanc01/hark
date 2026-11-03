@@ -1,7 +1,8 @@
 import AppKit
+import ApplicationServices
 
 /// Types text into the focused app by pasting it, then restores the clipboard.
-/// Requires the Accessibility permission (to send ⌘V).
+/// Requires the Accessibility permission (to send ⌘V and to peek at the caret).
 @MainActor
 public enum TextInserter {
     /// Asks clipboard managers not to record our temporary clipboard contents
@@ -14,6 +15,7 @@ public enum TextInserter {
     private static let vKeyCode: CGKeyCode = 9
 
     public static func insert(_ text: String, restoreAfter delay: Duration = .milliseconds(400)) async {
+        let text = leadingSpace(after: characterBeforeCaret(), for: text) + text
         let pasteboard = NSPasteboard.general
         let saved = snapshot(pasteboard)
 
@@ -32,6 +34,39 @@ public enum TextInserter {
         guard pasteboard.changeCount == ourChange else { return }
         pasteboard.clearContents()
         if !saved.isEmpty { pasteboard.writeObjects(saved) }
+    }
+
+    /// A space when the text would otherwise run into the word before the caret,
+    /// e.g. dictating twice in a row ("Hello." + "World." → "Hello. World.").
+    nonisolated public static func leadingSpace(after previous: Character?, for text: String) -> String {
+        guard let previous, let first = text.first else { return "" }
+        if previous.isWhitespace || first.isWhitespace { return "" }
+        if "([{\"'“‘/-@#".contains(previous) { return "" }  // openers: "(hello", "/path", "@name"
+        if ".,;:!?)]}”’".contains(first) { return "" }       // the text continues the previous word
+        return " "
+    }
+
+    /// The character just before the caret in the focused text field, if the app exposes it.
+    private static func characterBeforeCaret() -> Character? {
+        let system = AXUIElementCreateSystemWide()
+        AXUIElementSetMessagingTimeout(system, 0.05)  // never stall the paste on a slow app
+        var focused: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(system, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
+              let focused, CFGetTypeID(focused) == AXUIElementGetTypeID() else { return nil }
+        let element = focused as! AXUIElement
+
+        var rangeValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeValue) == .success,
+              let rangeValue, CFGetTypeID(rangeValue) == AXValueGetTypeID() else { return nil }
+        var selection = CFRange()
+        guard AXValueGetValue(rangeValue as! AXValue, .cfRange, &selection), selection.location > 0 else { return nil }
+
+        var previous = CFRange(location: selection.location - 1, length: 1)
+        guard let previousRange = AXValueCreate(.cfRange, &previous) else { return nil }
+        var string: CFTypeRef?
+        guard AXUIElementCopyParameterizedAttributeValue(element, kAXStringForRangeParameterizedAttribute as CFString,
+                                                         previousRange, &string) == .success else { return nil }
+        return (string as? String)?.last
     }
 
     private static func snapshot(_ pasteboard: NSPasteboard) -> [NSPasteboardItem] {

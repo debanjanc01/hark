@@ -39,13 +39,15 @@ Or grab the zip from [Releases](https://github.com/debanjanc01/hark/releases/lat
 2. Hold **Right Option** and talk. A small pill shows *Listening…* with bars that follow your voice.
 3. Let go. The text pops in.
 
-Works in any app: your editor, terminal, browser, Slack, Claude Code. From the menu bar icon you can change the hotkey (Right Option, Right Command or Fn), set the language, hide the pill, or launch at login.
+Works in any app: your editor, terminal, browser, Slack, Claude Code. Dictate twice in a row and Hark adds the space between sentences for you.
+
+From the menu bar icon you can change the hotkey (Right Option, Right Command or Fn), set the language, hide the pill, launch at login, or add **Custom Words**: names and jargon Hark keeps mishearing (like a teammate's name).
 
 On first launch macOS asks for **Microphone** (to hear you), **Input Monitoring** (to see the hotkey from any app) and **Accessibility** (to paste the text). If one is missing, the menu bar icon gets a slash and the menu links you to the right setting.
 
 ## Good to know
 
-- **7 languages:** English, German, French, Spanish, Italian, Dutch and Polish. Auto-detected, or pick one.
+- **7 languages:** English, German, French, Spanish, Italian, Dutch and Polish. Defaults to your Mac's language, or switch to auto-detect.
 - **Ignores the room.** Background voices, TV and fan noise don't count as you talking. If only background sound was heard, nothing gets pasted.
 - **The mic is only on while you hold the key.** Audio is never saved. Your clipboard is restored after pasting. More in [SECURITY.md](SECURITY.md).
 - **Want the biggest model instead?** If you need the most accuracy on hard audio, many languages, or AI rewriting of what you said, a heavier app running a large model is the better pick. Hark is for fast, everyday dictation with the smallest footprint.
@@ -55,6 +57,7 @@ On first launch macOS asks for **Microphone** (to hear you), **Input Monitoring*
 - **Nothing happens when I hold the key:** turn on Input Monitoring for Hark, then reopen it.
 - **The pill shows but no text appears:** turn on Accessibility for Hark.
 - **"No speech heard":** move a bit closer to the mic, and check the right input is picked in System Settings → Sound.
+- **First word cut off, or not sure the mic works?** Run `/Applications/Hark.app/Contents/MacOS/Hark --mic-check`. It shows how fast recording starts (about 150 ms is normal).
 - **Permissions broke after an update:** remove Hark from those three lists in System Settings and allow it again.
 
 ## Build it yourself

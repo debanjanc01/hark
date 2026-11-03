@@ -12,10 +12,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// `Hark --transcribe <audio file> [--repeat N]`: transcribes a file and prints JSON timings.
+/// `Hark --transcribe <audio file> [--language en] [--keywords "Priya,Kubernetes"] [--repeat N]`:
+/// transcribes a file and prints the result with timings as JSON.
 func transcribeFromCommandLine(_ arguments: [String]) async -> Int32 {
     guard let index = arguments.firstIndex(of: "--transcribe"), index + 1 < arguments.count else { return 2 }
-    let repeats = arguments.firstIndex(of: "--repeat").flatMap { Int(arguments[safe: $0 + 1] ?? "") } ?? 1
+    func value(_ flag: String) -> String? { arguments.firstIndex(of: flag).flatMap { arguments[safe: $0 + 1] } }
+    let repeats = value("--repeat").flatMap(Int.init) ?? 1
+    let language = value("--language")
+    let keywords = value("--keywords")?.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } ?? []
     do {
         let clock = ContinuousClock()
         var transcriber: Transcriber?
@@ -27,7 +31,7 @@ func transcribeFromCommandLine(_ arguments: [String]) async -> Int32 {
         var runs: [Double] = []
         for _ in 0..<max(1, repeats) {
             let start = clock.now
-            transcript = try await transcriber!.transcribe(samples)
+            transcript = try await transcriber!.transcribe(samples, language: language, keywords: keywords)
             runs.append((clock.now - start) / .milliseconds(1))
         }
         let result: [String: Any] = [
@@ -46,8 +50,40 @@ func transcribeFromCommandLine(_ arguments: [String]) async -> Int32 {
     }
 }
 
+/// `Hark --mic-check`: measures how fast recording starts and that the mic is released after.
+@MainActor
+func micCheck() async -> Int32 {
+    let recorder = AudioRecorder()
+    recorder.prepare()
+    print("mic in use before recording: \(AudioRecorder.isMicrophoneInUse)")
+    for trial in 1...3 {
+        let clock = ContinuousClock()
+        let start = clock.now
+        do { try recorder.start() } catch {
+            print("error: \(error.localizedDescription)")
+            return 1
+        }
+        while recorder.capturedSeconds == 0, clock.now - start < .seconds(2) {
+            try? await Task.sleep(for: .milliseconds(2))
+        }
+        let firstAudio = clock.now - start
+        try? await Task.sleep(until: start + .seconds(1))
+        let (samples, _) = recorder.stop()
+        try? await Task.sleep(for: .milliseconds(300))
+        print("trial \(trial): first audio after \(firstAudio.formatted(.units(allowed: [.milliseconds]))), "
+              + "\(samples.count * 1000 / Transcriber.sampleRate) ms captured in 1 s, "
+              + "mic released: \(!AudioRecorder.isMicrophoneInUse)")
+    }
+    return 0
+}
+
 extension Array {
     subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil }
+}
+
+if CommandLine.arguments.contains("--mic-check") {
+    Task { @MainActor in exit(await micCheck()) }
+    dispatchMain()
 }
 
 if CommandLine.arguments.contains("--transcribe") {

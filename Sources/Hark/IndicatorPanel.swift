@@ -129,8 +129,10 @@ final class IndicatorPanel {
         CATransaction.commit()
         spinner.stopAnimation(nil)
 
-        // Follow the screen the person is working on.
-        if let frame = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame {
+        // Show it on the screen the person is working on (where the pointer is).
+        let mouse = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
+        if let frame = screen?.visibleFrame {
             panel.setFrameOrigin(NSPoint(x: frame.midX - Self.size.width / 2, y: frame.minY + 90))
         }
         panel.orderFrontRegardless()

@@ -14,7 +14,7 @@ struct SettingsTests {
     @Test func defaults() {
         let (settings, _) = makeSettings()
         #expect(settings.hotkey == .rightOption)
-        #expect(settings.language == nil)
+        #expect(settings.language == Settings.systemLanguage)
         #expect(settings.showsIndicator)
         #expect(settings.keywords.isEmpty)
     }
@@ -38,6 +38,12 @@ struct SettingsTests {
         defaults.set("capsLock", forKey: "hotkey")
         defaults.set("xx", forKey: "language")
         #expect(settings.hotkey == .rightOption)
-        #expect(settings.language == nil)
+        #expect(settings.language == Settings.systemLanguage)
+    }
+
+    @Test func autoDetectIsRemembered() {
+        let (settings, defaults) = makeSettings()
+        settings.language = nil
+        #expect(Settings(defaults: defaults).language == nil)
     }
 }

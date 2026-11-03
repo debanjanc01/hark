@@ -1,6 +1,5 @@
 import AppKit
 import HarkCore
-import ServiceManagement
 
 /// The menu bar icon and its menu.
 @MainActor
@@ -13,6 +12,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let settings: Settings
+    private let loginItem = LoginItem(bundleIdentifier: Bundle.main.bundleIdentifier ?? "io.github.debanjanc01.hark")
     private let menu = NSMenu()
 
     /// Set by the controller to describe the current state at the top of the menu.
@@ -26,6 +26,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         item.menu = menu
         item.button?.toolTip = "Hark"
         setIcon(.loading)
+        loginItem.migrateFromAppService()
     }
 
     func setIcon(_ icon: Icon) {
@@ -82,13 +83,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(checked("Show On-Screen Indicator", settings.showsIndicator) { [self] in
             settings.showsIndicator.toggle()
         })
-        menu.addItem(checked("Launch at Login", SMAppService.mainApp.status == .enabled) {
+        menu.addItem(action("Custom Words…") { [self] in editCustomWords() })
+        menu.addItem(checked("Launch at Login", loginItem.isEnabled) { [self] in
             do {
-                if SMAppService.mainApp.status == .enabled {
-                    try SMAppService.mainApp.unregister()
-                } else {
-                    try SMAppService.mainApp.register()
-                }
+                try loginItem.setEnabled(!loginItem.isEnabled)
             } catch {
                 NSAlert(error: error).runModal()
             }
@@ -107,6 +105,27 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private static let credits = NSAttributedString(
         string: "Local, private dictation.\nSpeech recognition by Whistle and the Needle engine from Cactus Compute (Apache-2.0).",
         attributes: [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize), .foregroundColor: NSColor.secondaryLabelColor])
+
+    /// Names, jargon and other words Hark should listen for (keyword biasing).
+    private func editCustomWords() {
+        let alert = NSAlert()
+        alert.messageText = "Custom Words"
+        alert.informativeText = "Names, product names or jargon Hark should listen for, separated by commas."
+        alert.addButton(withTitle: "Save")
+        alert.addButton(withTitle: "Cancel")
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
+        field.placeholderString = "Priya, Kubernetes, middleware"
+        field.stringValue = settings.keywords.joined(separator: ", ")
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        settings.keywords = field.stringValue
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
 
     // MARK: Menu item helpers
 

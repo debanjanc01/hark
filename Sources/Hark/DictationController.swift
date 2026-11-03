@@ -6,10 +6,17 @@ import os
 @MainActor
 final class DictationController {
     private enum State {
-        case loading, idle, listening(since: ContinuousClock.Instant), transcribing
+        case loading, idle, transcribing
+        case listening(since: ContinuousClock.Instant)
+        /// The key is up, but audio is still arriving (see `finishListening`).
+        case finishing
     }
 
     private static let minimumDuration: Duration = .milliseconds(300)
+    /// Audio reaches us ~100 ms after it's spoken, so keep recording briefly after the key
+    /// comes up, and a little longer while the person is still mid-word.
+    private static let releaseTail: Duration = .milliseconds(150)
+    private static let maximumReleaseTail: Duration = .milliseconds(450)
     private static let log = Logger(subsystem: "io.github.debanjanc01.hark", category: "dictation")
 
     private let settings = Settings()
@@ -73,6 +80,7 @@ final class DictationController {
 
     private func requestPermissions() async {
         if !Permission.microphone.isGranted { await Permission.microphone.request() }
+        if Permission.microphone.isGranted { recorder.prepare() }
         if !Permission.accessibility.isGranted { await Permission.accessibility.request() }
         if !hotkeys.start() {
             await Permission.inputMonitoring.request()
@@ -97,6 +105,8 @@ final class DictationController {
             Task { await Permission.microphone.request() }
             return
         }
+        let pressed = ContinuousClock.now
+        if settings.showsIndicator { indicator.showListening() }
         do {
             try recorder.start()
         } catch {
@@ -104,8 +114,7 @@ final class DictationController {
             if settings.showsIndicator { indicator.showMessage("Mic unavailable") }
             return
         }
-        state = .listening(since: .now)
-        if settings.showsIndicator { indicator.showListening() }
+        state = .listening(since: pressed)
         startAnimation { [unowned self] in
             let level = recorder.level
             statusItem.setIcon(.listening(level: level))
@@ -115,11 +124,23 @@ final class DictationController {
 
     private func finishListening() {
         guard case .listening(let since) = state else { return }
+        state = .finishing
+        let released = ContinuousClock.now
+        Task {
+            try? await Task.sleep(for: Self.releaseTail)
+            while recorder.level > 0, ContinuousClock.now - released < Self.maximumReleaseTail {
+                try? await Task.sleep(for: .milliseconds(30))
+            }
+            transcribe(heldFor: released - since)
+        }
+    }
+
+    private func transcribe(heldFor duration: Duration) {
         let (samples, heardSpeech) = recorder.stop()
         stopAnimation()
 
         // Skip accidental taps, and recordings where only background sound (or nobody) was heard.
-        guard ContinuousClock.now - since >= Self.minimumDuration, let transcriber else {
+        guard duration >= Self.minimumDuration, let transcriber else {
             returnToIdle()
             return
         }

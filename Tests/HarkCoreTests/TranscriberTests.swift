@@ -18,6 +18,13 @@ struct TranscriberTests {
         #expect(transcript.language == "en")
     }
 
+    @Test func customWordsFixNames() async throws {
+        let transcriber = try #require(Fixtures.transcriber)
+        let audio = try Fixtures.speech("Schedule a meeting with Priya on Thursday.")
+        let transcript = try await transcriber.transcribe(audio, language: "en", keywords: ["Priya"])
+        #expect(transcript.text.contains("Priya"))
+    }
+
     @Test func silenceGivesEmptyText() async throws {
         let transcriber = try #require(Fixtures.transcriber)
         let transcript = try await transcriber.transcribe(Fixtures.silence(seconds: 1))
