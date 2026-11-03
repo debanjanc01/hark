@@ -46,6 +46,7 @@ jobs:
           zip=$PWD/build/Hark-$(cat VERSION).zip
           brew tap debanjanc01/tap
           brew trust --cask debanjanc01/tap/hark || true
+          mkdir -p "$(brew --repo debanjanc01/tap)/Casks"
           sed -e "s|^  version \".*\"|  version \"$(cat VERSION)\"|" \
               -e "s|^  sha256 \".*\"|  sha256 \"$(shasum -a 256 "$zip" | cut -d' ' -f1)\"|" \
               -e "s|^  url \".*\"|  url \"file://$zip\"|" \
