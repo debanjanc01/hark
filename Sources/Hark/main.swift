@@ -53,6 +53,9 @@ func transcribeFromCommandLine(_ arguments: [String]) async -> Int32 {
 /// `Hark --mic-check`: measures how fast recording starts and that the mic is released after.
 @MainActor
 func micCheck() async -> Int32 {
+    for permission in Permission.allCases {
+        print("\(permission.displayName): \(permission.isGranted ? "granted" : "NOT granted")")
+    }
     let recorder = AudioRecorder()
     recorder.prepare()
     print("mic in use before recording: \(AudioRecorder.isMicrophoneInUse)")
@@ -68,10 +71,10 @@ func micCheck() async -> Int32 {
         }
         let firstAudio = clock.now - start
         try? await Task.sleep(until: start + .seconds(1))
-        let (samples, _) = recorder.stop()
+        let (samples, speechFrames) = recorder.stop()
         try? await Task.sleep(for: .milliseconds(300))
         print("trial \(trial): first audio after \(firstAudio.formatted(.units(allowed: [.milliseconds]))), "
-              + "\(samples.count * 1000 / Transcriber.sampleRate) ms captured in 1 s, "
+              + "\(samples.count * 1000 / Transcriber.sampleRate) ms captured in 1 s, \(speechFrames) speech frames, "
               + "mic released: \(!AudioRecorder.isMicrophoneInUse)")
     }
     return 0

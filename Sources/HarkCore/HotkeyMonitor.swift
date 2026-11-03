@@ -1,4 +1,5 @@
 import CoreGraphics
+import os
 
 /// A modifier key that is held to dictate.
 public enum Hotkey: String, CaseIterable, Sendable {
@@ -42,6 +43,7 @@ public final class HotkeyMonitor {
     /// regular modifier (e.g. ⌥← to jump words), so the dictation should be dropped.
     public var onCancel: () -> Void = {}
 
+    private static let log = Logger(subsystem: "io.github.debanjanc01.hark", category: "hotkey")
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
     private var isHeld = false
@@ -83,9 +85,11 @@ public final class HotkeyMonitor {
             let down = flags.contains(hotkey.flag)
             guard down != isHeld else { return }
             isHeld = down
+            Self.log.debug("hotkey \(down ? "down" : "up", privacy: .public)")
             down ? onPress() : onRelease()
         case .keyDown where isHeld:
             isHeld = false
+            Self.log.debug("another key pressed while holding: cancel")
             onCancel()
         default:
             break
