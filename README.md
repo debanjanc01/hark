@@ -63,7 +63,7 @@ On first launch Hark opens a small window asking for **Microphone** (to hear you
 - **The pill shows but no text appears:** turn on Accessibility for Hark.
 - **"No speech heard":** move a bit closer to the mic, and check the right input is picked in System Settings → Sound.
 - **First word cut off, or not sure the mic works?** Run `/Applications/Hark.app/Contents/MacOS/Hark --mic-check`. It shows how fast recording starts (about 150 ms is normal).
-- **Permissions broke after an update:** remove Hark from Microphone and Accessibility in System Settings and allow it again.
+- **Asked for permissions again after an update:** that's expected until Hark is signed by Apple, since macOS ties permissions to each build. Click **Allow…** in Hark's window again; it clears the old entry for you.
 
 ## Build it yourself
 
