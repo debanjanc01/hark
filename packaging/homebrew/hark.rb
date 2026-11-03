@@ -10,7 +10,7 @@ cask "hark" do
   homepage "https://github.com/debanjanc01/hark"
 
   depends_on arch: :arm64
-  depends_on macos: ">= :ventura"
+  depends_on macos: :ventura
 
   app "Hark.app"
 

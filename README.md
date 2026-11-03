@@ -37,7 +37,7 @@ Hark isn't notarized by Apple yet, so macOS blocks the first launch. Go to Syste
 
 Or grab the zip from [Releases](https://github.com/debanjanc01/hark/releases/latest) and drag Hark to Applications (same one-time **Open Anyway**).
 
-Installed Hark with `brew install debanjanc01/tap/hark` before? Switch with `brew uninstall hark`, then the commands above.
+Installed Hark with `brew install debanjanc01/tap/hark` before? Switch with `brew uninstall hark && rm /Applications/Hark.app` (that removes the old link), then the commands above.
 
 ## Use it
 
