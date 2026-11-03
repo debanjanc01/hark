@@ -30,18 +30,19 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     func setIcon(_ icon: Icon) {
         guard let button = item.button else { return }
-        let (symbol, value, tint): (String, Double?, NSColor?) = switch icon {
-        case .loading: ("waveform", 0.3, nil)
-        case .idle: ("waveform", nil, nil)
-        case .needsAttention: ("waveform.slash", nil, .systemOrange)
-        case .listening(let level): ("waveform", 0.15 + 0.85 * Double(level), .systemRed)
-        case .transcribing(let phase): ("waveform", phase, .controlAccentColor)
+        // Template images only, so macOS colors the icon like the rest of the menu bar
+        // (white or black depending on the wallpaper and appearance).
+        let (symbol, value): (String, Double?) = switch icon {
+        case .loading: ("waveform", 0.3)
+        case .idle: ("waveform", nil)
+        case .needsAttention: ("waveform.slash", nil)
+        case .listening(let level): ("waveform", 0.15 + 0.85 * Double(level))
+        case .transcribing(let phase): ("waveform", phase)
         }
         let image = value.map { NSImage(systemSymbolName: symbol, variableValue: $0, accessibilityDescription: "Hark") }
             ?? NSImage(systemSymbolName: symbol, accessibilityDescription: "Hark")
         image?.isTemplate = true
         button.image = image
-        button.contentTintColor = tint
     }
 
     // MARK: NSMenuDelegate
