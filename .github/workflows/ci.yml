@@ -10,7 +10,12 @@ permissions:
 
 jobs:
   test:
-    runs-on: macos-15  # Apple Silicon
+    strategy:
+      matrix:
+        # Apple Silicon. macOS 14 has an older Swift (6.0), which the bottle and
+        # source installs on that macOS are built with.
+        os: [macos-14, macos-15]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Use the newest Xcode
