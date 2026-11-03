@@ -10,12 +10,9 @@ permissions:
 
 jobs:
   test:
-    strategy:
-      matrix:
-        # Apple Silicon. macOS 14 has an older Swift (6.0), which the bottle and
-        # source installs on that macOS are built with.
-        os: [macos-14, macos-15]
-    runs-on: ${{ matrix.os }}
+    # Apple Silicon. The oldest macOS runner has the oldest Swift (6.0) Hark supports;
+    # what builds there also runs on newer macOS.
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - name: Use the newest Xcode
@@ -30,3 +27,26 @@ jobs:
         run: make test
       - name: Build app
         run: make app
+
+  # Builds Hark the way `brew install` does, from this commit, so a formula or build
+  # problem shows up here rather than in the release's bottle job.
+  homebrew:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use the newest Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)"
+      - name: Install with Homebrew from this commit
+        env:
+          HOMEBREW_NO_INSTALL_FROM_API: 1
+        run: |
+          tarball=$RUNNER_TEMP/hark-$(cat VERSION).tar.gz
+          git archive --format=tar.gz --prefix="hark-$(cat VERSION)/" -o "$tarball" HEAD
+          brew tap debanjanc01/tap
+          brew trust --formula debanjanc01/tap/hark || true
+          sed -e "s|^  url \".*\"|  url \"file://$tarball\"|" \
+              -e "s|^  sha256 \".*\"|  sha256 \"$(shasum -a 256 "$tarball" | cut -d' ' -f1)\"|" \
+              -e "s|^  url .*|&\n  version \"$(cat VERSION)\"|" \
+            packaging/homebrew/hark.rb > "$(brew --repo debanjanc01/tap)/Formula/hark.rb"
+          brew install --build-bottle debanjanc01/tap/hark
+          brew test debanjanc01/tap/hark

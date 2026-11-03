@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: macos-15
+    runs-on: macos-14  # the oldest runner: what builds there runs on newer macOS too
     env:
       HAS_SIGNING: ${{ secrets.MACOS_CERTIFICATE != '' }}
       HAS_NOTARY: ${{ secrets.APPLE_ID != '' }}

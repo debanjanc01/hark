@@ -105,16 +105,16 @@ extension Array {
     subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil }
 }
 
-if CommandLine.arguments.contains("--mic-check") {
+// ProcessInfo rather than CommandLine: Swift 6.0 in Homebrew's build rejects CommandLine as unsafe.
+let arguments = ProcessInfo.processInfo.arguments
+
+if arguments.contains("--mic-check") {
     Task { @MainActor in exit(await micCheck()) }
     dispatchMain()
 }
 
-if CommandLine.arguments.contains("--transcribe") {
-    // Read the arguments here: Swift 6.0 rejects touching CommandLine from inside the task.
-    Task(priority: .userInitiated) { [arguments = CommandLine.arguments] in
-        exit(await transcribeFromCommandLine(arguments))
-    }
+if arguments.contains("--transcribe") {
+    Task(priority: .userInitiated) { exit(await transcribeFromCommandLine(arguments)) }
     dispatchMain()
 }
 
