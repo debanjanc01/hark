@@ -15,7 +15,10 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
     private let window: NSWindow
     private var shown: [Bool] = []
     private var tryField: NSTextField?
+    private var customWords: NSTextField?
     private var result: NSTextField?
+    /// Called when the hotkey is changed here.
+    var onHotkeyChanged: () -> Void = {}
 
     init(settings: Settings) {
         self.settings = settings
@@ -56,6 +59,13 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
         }
     }
 
+    /// Redraws with the current settings, e.g. after they're changed in the menu.
+    func settingsChanged() {
+        guard window.isVisible else { return }
+        shown = []
+        refresh()
+    }
+
     /// The last dictation found no speech; say so if the person is trying Hark here.
     func noSpeechHeard() {
         guard window.isKeyWindow else { return }
@@ -72,6 +82,7 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
 
     private func permissionViews(_ granted: [Bool]) -> [NSView] {
         tryField = nil
+        customWords = nil
         result = nil
         let footnote = label("""
             Hark lives in the menu bar. If you can't see its waveform icon, the menu bar is full and \
@@ -150,27 +161,98 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
                                      target: self, action: #selector(toggleLaunchAtLogin))
         launchAtLogin.state = loginItem.isEnabled ? .on : .off
 
-        let footnote = label("Hotkey, language and custom words are under the waveform icon in the menu bar.",
-                             style: .callout)
+        // The same settings as the menu bar menu, which can be hidden behind the notch.
+        let hotkey = popUp(Hotkey.allCases.map(\.displayName),
+                           selected: Hotkey.allCases.firstIndex(of: settings.hotkey), action: #selector(changeHotkey))
+        let language = popUp(Settings.languageChoices.map(\.name),
+                             selected: Settings.languageChoices.firstIndex { $0.code == settings.language },
+                             action: #selector(changeLanguage))
+        let words = NSTextField(string: settings.customWords)
+        words.placeholderString = "Separate them with commas"
+        words.delegate = self
+        words.widthAnchor.constraint(equalToConstant: 280).isActive = true
+        customWords = words
+        let wordsHint = label("Names or words Hark keeps getting wrong.", style: .callout, width: 280)
+        wordsHint.textColor = .secondaryLabelColor
+        let wordsColumn = NSStackView(views: [words, wordsHint])
+        wordsColumn.orientation = .vertical
+        wordsColumn.alignment = .leading
+        wordsColumn.spacing = 4
+
+        let grid = NSGridView(views: [
+            [label("Hotkey", width: 104), hotkey],
+            [label("Language", width: 104), language],
+            [label("Custom words", width: 104), wordsColumn],
+        ])
+        grid.rowSpacing = 10
+        grid.columnSpacing = 8
+        grid.rowAlignment = .firstBaseline
+
+        let indicator = NSButton(checkboxWithTitle: "Show On-Screen Indicator",
+                                 target: self, action: #selector(toggleIndicator))
+        indicator.state = settings.showsIndicator ? .on : .off
+
+        let footnote = label("These settings are also under the waveform icon in the menu bar.", style: .callout)
         footnote.textColor = .secondaryLabelColor
 
+        let about = NSButton(title: "About Hark", target: self, action: #selector(showAbout))
+        let quit = NSButton(title: "Quit Hark", target: NSApp, action: #selector(NSApplication.terminate))
         let done = NSButton(title: "Done", target: window, action: #selector(NSWindow.performClose))
         done.keyEquivalent = "\r"
-        let buttons = NSStackView(views: [NSView(), done])
+        let buttons = NSStackView(views: [about, NSView(), quit, done])
         buttons.widthAnchor.constraint(equalToConstant: 392).isActive = true
 
-        return [label("Hark is ready. Try it here.", style: .title2), field, result, launchAtLogin, footnote, buttons]
+        return [label("Hark is ready. Try it here.", style: .title2), field, result,
+                separator(), grid, indicator, launchAtLogin, footnote, buttons]
     }
 
     func controlTextDidChange(_ notification: Notification) {
+        if let field = notification.object as? NSTextField, field === customWords {
+            settings.customWords = field.stringValue
+            return
+        }
         guard tryField?.stringValue.isEmpty == false else { return }
         result?.stringValue = "✓ It works. Hold \(settings.hotkey.displayName) in any app to dictate."
         result?.textColor = .labelColor
     }
 
+    @objc private func changeHotkey(_ sender: NSPopUpButton) {
+        settings.hotkey = Hotkey.allCases[sender.indexOfSelectedItem]
+        onHotkeyChanged()
+        tryField?.placeholderString = "Hold \(settings.hotkey.displayName) and say “Hark is listening.”"
+    }
+
+    @objc private func changeLanguage(_ sender: NSPopUpButton) {
+        settings.language = Settings.languageChoices[sender.indexOfSelectedItem].code
+    }
+
+    @objc private func showAbout() {
+        StatusItemController.showAbout()
+    }
+
+    @objc private func toggleIndicator(_ sender: NSButton) {
+        settings.showsIndicator = sender.state == .on
+    }
+
     @objc private func toggleLaunchAtLogin(_ sender: NSButton) {
         try? loginItem.setEnabled(sender.state == .on)
         sender.state = loginItem.isEnabled ? .on : .off
+    }
+
+    private func popUp(_ titles: [String], selected: Int?, action: Selector) -> NSPopUpButton {
+        let button = NSPopUpButton(frame: .zero, pullsDown: false)
+        button.addItems(withTitles: titles)
+        button.selectItem(at: selected ?? 0)
+        button.target = self
+        button.action = action
+        return button
+    }
+
+    private func separator() -> NSView {
+        let line = NSBox()
+        line.boxType = .separator
+        line.widthAnchor.constraint(equalToConstant: 392).isActive = true
+        return line
     }
 
     /// A wrapping label in one of the system text styles, so it follows the person's settings.

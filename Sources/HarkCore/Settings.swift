@@ -53,4 +53,21 @@ public final class Settings {
         get { defaults.stringArray(forKey: "keywords") ?? [] }
         set { defaults.set(newValue, forKey: "keywords") }
     }
+
+    /// `keywords` as the person types them: separated by commas.
+    public var customWords: String {
+        get { keywords.joined(separator: ", ") }
+        set {
+            keywords = newValue.split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        }
+    }
+
+    /// The choices for `language`, with their names in the person's language.
+    public static var languageChoices: [(code: String?, name: String)] {
+        [(nil, "Auto-Detect")] + Transcriber.languages.map { code in
+            (code, Locale.current.localizedString(forLanguageCode: code)?.capitalized ?? code)
+        }
+    }
 }

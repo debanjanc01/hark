@@ -40,7 +40,11 @@ final class DictationController {
         }
         hotkeys.onRelease = { [unowned self] in finishListening() }
         hotkeys.onCancel = { [unowned self] in cancelListening() }
-        statusItem.onSettingsChanged = { [unowned self] in hotkeys.hotkey = settings.hotkey }
+        statusItem.onSettingsChanged = { [unowned self] in
+            hotkeys.hotkey = settings.hotkey
+            setup.settingsChanged()
+        }
+        setup.onHotkeyChanged = { [unowned self] in hotkeys.hotkey = settings.hotkey }
     }
 
     func start() {

@@ -19,6 +19,13 @@ struct SettingsTests {
         #expect(settings.keywords.isEmpty)
     }
 
+    @Test func customWordsAreSplitOnCommas() {
+        let (settings, _) = makeSettings()
+        settings.customWords = " Hark,  Whistle , ,Needle "
+        #expect(settings.keywords == ["Hark", "Whistle", "Needle"])
+        #expect(settings.customWords == "Hark, Whistle, Needle")
+    }
+
     @Test func persists() {
         let (settings, defaults) = makeSettings()
         settings.hotkey = .fn

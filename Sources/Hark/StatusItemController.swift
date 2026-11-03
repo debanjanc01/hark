@@ -73,33 +73,36 @@ final class StatusItemController: NSObject, NSMenuDelegate {
                 onSettingsChanged()
             }
         }))
-        let languageNames = Locale.current
-        menu.addItem(submenu("Language", [checked("Auto-Detect", settings.language == nil) { [self] in
-            settings.language = nil
-        }] + Transcriber.languages.map { code in
-            checked(languageNames.localizedString(forLanguageCode: code)?.capitalized ?? code,
-                    settings.language == code) { [self] in settings.language = code }
+        menu.addItem(submenu("Language", Settings.languageChoices.map { choice in
+            checked(choice.name, settings.language == choice.code) { [self] in
+                settings.language = choice.code
+                onSettingsChanged()
+            }
         }))
         menu.addItem(checked("Show On-Screen Indicator", settings.showsIndicator) { [self] in
             settings.showsIndicator.toggle()
+            onSettingsChanged()
         })
         menu.addItem(action("Custom Words…") { [self] in editCustomWords() })
         menu.addItem(checked("Launch at Login", loginItem.isEnabled) { [self] in
             do {
                 try loginItem.setEnabled(!loginItem.isEnabled)
+                onSettingsChanged()
             } catch {
                 NSAlert(error: error).runModal()
             }
         })
 
         menu.addItem(.separator())
-        menu.addItem(action("About Hark") {
-            NSApp.activate(ignoringOtherApps: true)
-            NSApp.orderFrontStandardAboutPanel(options: [.credits: Self.credits])
-        })
+        menu.addItem(action("About Hark") { Self.showAbout() })
         let quit = action("Quit Hark") { NSApp.terminate(nil) }
         quit.keyEquivalent = "q"
         menu.addItem(quit)
+    }
+
+    static func showAbout() {
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
     }
 
     private static let credits = NSAttributedString(
@@ -114,17 +117,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         alert.addButton(withTitle: "Save")
         alert.addButton(withTitle: "Cancel")
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
-        field.placeholderString = "Priya, Kubernetes, middleware"
-        field.stringValue = settings.keywords.joined(separator: ", ")
+        field.stringValue = settings.customWords
         alert.accessoryView = field
         alert.window.initialFirstResponder = field
 
         NSApp.activate(ignoringOtherApps: true)
         guard alert.runModal() == .alertFirstButtonReturn else { return }
-        settings.keywords = field.stringValue
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+        settings.customWords = field.stringValue
+        onSettingsChanged()
     }
 
     // MARK: Menu item helpers
