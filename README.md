@@ -2,17 +2,28 @@
 
 <h1 align="center">Hark</h1>
 
-<p align="center">Hold a key, talk, let go. Your words show up wherever you're typing.<br>Runs fully on your Mac. Nothing leaves it.</p>
+<p align="center"><b>Local dictation for your Mac. 17 MB, total.</b><br>Hold a key, talk, let go. Your words show up wherever you're typing.</p>
 
 ---
 
-Hark is a tiny menu bar app for dictating into any app: your editor, terminal, Slack, browser, Claude Code, whatever. Speech recognition is done on-device by [Whistle](https://cactuscompute.com/blog/whistle), a 17 MB model that turns a sentence into text in about 30 ms.
+Local dictation shouldn't need a gigabyte. Most offline dictation apps ship Whisper or Parakeet models that weigh 250 MB to 3 GB, and keep a chunk of that in memory all day.
+
+Hark is the small one:
+
+| | |
+| --- | --- |
+| **Whole app** | 17 MB. The app itself is 0.8 MB, the rest is the speech model. |
+| **Memory when idle** | ~31 MB |
+| **CPU when idle** | 0% |
+| **Speed** | ~30 ms to turn a sentence into text, on the CPU |
+| **Startup** | ready in ~0.1 s |
+| **Network** | none. Nothing leaves your Mac. |
+
+That's possible because of [Whistle](https://cactuscompute.com/blog/whistle), a 16 MB speech-to-text model from Cactus Compute. Hark is a thin native wrapper around it: no Electron, no Python, no bundled runtime, no background services.
 
 ## Install
 
-You need an Apple Silicon Mac on macOS 13 or newer.
-
-**Homebrew** (easiest):
+Apple Silicon Mac, macOS 13 or newer.
 
 ```sh
 brew install debanjanc01/tap/hark
@@ -20,38 +31,31 @@ ln -sf "$(brew --prefix)/opt/hark/Hark.app" /Applications/Hark.app
 open /Applications/Hark.app
 ```
 
-**Or download** the zip from [Releases](https://github.com/debanjanc01/hark/releases/latest), unzip, and drag Hark to Applications. The first time you open it, macOS will block it because it isn't notarized yet. Go to System Settings → Privacy & Security and click **Open Anyway**. One time only.
+Or grab the zip from [Releases](https://github.com/debanjanc01/hark/releases/latest) and drag Hark to Applications. Since it isn't signed by Apple yet, macOS blocks the first launch: go to System Settings → Privacy & Security and hit **Open Anyway**. (Homebrew builds it on your Mac, so you skip this.)
 
 ## Use it
 
 1. Click where you want the text.
-2. Hold **Right Option** and talk. A little pill shows *Listening…* with bars that move with your voice.
-3. Let go. It says *Transcribing…* for a blink, then the text pops in.
+2. Hold **Right Option** and talk. A small pill shows *Listening…* with bars that follow your voice.
+3. Let go. The text pops in.
 
-Pressed another key while holding Right Option (like ⌥←)? Hark figures you meant a shortcut and backs off.
+Works in any app: your editor, terminal, browser, Slack, Claude Code. From the menu bar icon you can change the hotkey (Right Option, Right Command or Fn), set the language, hide the pill, or launch at login.
 
-From the menu bar icon you can change the hotkey (Right Option, Right Command or Fn), pick a language (English, German, French, Spanish, Italian, Dutch, Polish or auto), hide the pill, or start Hark at login.
+On first launch macOS asks for **Microphone** (to hear you), **Input Monitoring** (to see the hotkey from any app) and **Accessibility** (to paste the text). If one is missing, the menu bar icon gets a slash and the menu links you to the right setting.
 
-## Permissions
+## Good to know
 
-macOS asks for three things the first time:
-
-- **Microphone**: to hear you.
-- **Input Monitoring**: to notice the hotkey from any app.
-- **Accessibility**: to paste the text where your cursor is.
-
-Missed one? The menu bar icon gets a slash through it, and the menu has a button that takes you to the right setting.
-
-## Privacy
-
-No accounts, no analytics, no network calls. The mic is only on while you hold the key, and audio is never saved. Your clipboard is put back after pasting, and clipboard managers are told to skip the dictated text. More in [SECURITY.md](SECURITY.md).
+- **7 languages:** English, German, French, Spanish, Italian, Dutch and Polish. Auto-detected, or pick one.
+- **Ignores the room.** Background voices, TV and fan noise don't count as you talking. If only background sound was heard, nothing gets pasted.
+- **The mic is only on while you hold the key.** Audio is never saved. Your clipboard is restored after pasting. More in [SECURITY.md](SECURITY.md).
+- **Want the biggest model instead?** If you need the most accuracy on hard audio, many languages, or AI rewriting of what you said, a heavier app running a large model is the better pick. Hark is for fast, everyday dictation with the smallest footprint.
 
 ## Something off?
 
-- **Nothing happens when I hold the key.** Turn on Input Monitoring for Hark, then quit and reopen it.
-- **The pill shows but no text appears.** Turn on Accessibility for Hark.
-- **"No speech heard".** Hark ignores background chatter and noise, so get a bit closer to the mic. Also check the right mic is picked in System Settings → Sound.
-- **Permissions broke after an update.** Remove Hark from those three lists in System Settings and add it again. (Unsigned builds look like a new app to macOS each time.)
+- **Nothing happens when I hold the key:** turn on Input Monitoring for Hark, then reopen it.
+- **The pill shows but no text appears:** turn on Accessibility for Hark.
+- **"No speech heard":** move a bit closer to the mic, and check the right input is picked in System Settings → Sound.
+- **Permissions broke after an update:** remove Hark from those three lists in System Settings and allow it again.
 
 ## Build it yourself
 
@@ -61,26 +65,8 @@ make test      # downloads the engine + model (pinned and checksum-checked), run
 make install   # builds Hark.app, copies it to /Applications, opens it
 ```
 
-You need the Xcode Command Line Tools (`xcode-select --install`). The code is plain Swift: `Sources/HarkCore` has the logic (recording, voice detection, transcription, hotkey, pasting) and `Sources/Hark` has the menu bar app.
-
-The app binary can also transcribe a file, handy for scripts:
-
-```sh
-/Applications/Hark.app/Contents/MacOS/Hark --transcribe note.m4a
-```
-
-## Why Swift?
-
-The model does the heavy lifting no matter what language calls it. Swift just makes everything around it lighter, and lets Hark talk to macOS directly. Compared with the same model via Python on an M4 Pro:
-
-| | Hark | Python |
-| --- | --- | --- |
-| Model load | 11 ms | ~370 ms |
-| 12 s of speech → text | 91 ms | 104 ms |
-| Memory | ~48 MB | ~105 MB |
-
-Run `scripts/benchmark.sh` to check on your machine.
+Needs the Xcode Command Line Tools (`xcode-select --install`). It's plain Swift: `Sources/HarkCore` has the logic (recording, voice detection, transcription, hotkey, pasting), `Sources/Hark` is the menu bar app. You can also transcribe a file with `Hark.app/Contents/MacOS/Hark --transcribe note.m4a`.
 
 ## License
 
-MIT. See [LICENSE](LICENSE), and [TERMS.md](TERMS.md) for the plain-English version. The Whistle model and Needle engine are by [Cactus Compute](https://cactuscompute.com) under Apache 2.0 ([notices](THIRD_PARTY_NOTICES.md)).
+MIT. See [LICENSE](LICENSE), and [TERMS.md](TERMS.md) for the plain-English version. The Whistle model and Needle engine are by [Cactus Compute](https://cactuscompute.com), under Apache 2.0 ([notices](THIRD_PARTY_NOTICES.md)).
