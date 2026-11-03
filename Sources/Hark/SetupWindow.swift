@@ -115,7 +115,7 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
 
     private func tryItViews() -> [NSView] {
         let field = NSTextField(string: "")
-        field.placeholderString = "Hold \(settings.hotkey.displayName) and say “Hello Hark”."
+        field.placeholderString = "Hold \(settings.hotkey.displayName) and say “Hark is listening.”"
         field.font = .preferredFont(forTextStyle: .body)
         field.cell?.wraps = true
         field.cell?.isScrollable = false
