@@ -35,7 +35,7 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
     func refresh() {
         let granted = Permission.allCases.map(\.isGranted)
         guard granted != shown else { return }
-        let wasReady = !shown.isEmpty && !shown.contains(false)
+        let newlyGranted = zip(granted, shown).contains { now, before in now && !before }
         shown = granted
 
         let ready = !granted.contains(false)
@@ -47,8 +47,9 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
         stack.widthAnchor.constraint(equalToConstant: 440).isActive = true  // 392 + the insets
         window.contentView = stack
         window.setContentSize(stack.fittingSize)
-        // Everything was just allowed in System Settings: come back here to try it.
-        if ready, !wasReady, window.isVisible { focus() }
+        // macOS hands focus back to the previous app after its prompt or System Settings,
+        // so come back here for the next step.
+        if newlyGranted, window.isVisible { focus() }
     }
 
     /// The last dictation found no speech; say so if the person is trying Hark here.
@@ -108,7 +109,10 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
 
     @objc private func allow(_ sender: NSButton) {
         let permission = Permission.allCases[sender.tag]
-        Task { await permission.request() }
+        Task {
+            await permission.request()
+            refresh()
+        }
     }
 
     // MARK: Try it
