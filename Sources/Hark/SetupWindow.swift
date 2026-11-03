@@ -187,8 +187,8 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
         let grid = NSGridView(views: [
             [label("Hotkey", width: 104), hotkey],
             [label("Language", width: 104), language],
-            [NSGridCell.emptyContentView, indicator],
             [label("Custom words", width: 104), wordsColumn],
+            [NSGridCell.emptyContentView, indicator],
             [NSGridCell.emptyContentView, launchAtLogin],
         ])
         grid.rowSpacing = 10

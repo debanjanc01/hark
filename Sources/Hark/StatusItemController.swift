@@ -79,11 +79,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
                 onSettingsChanged()
             }
         }))
+        menu.addItem(action("Custom Words…") { [self] in editCustomWords() })
         menu.addItem(checked("Show On-Screen Indicator", settings.showsIndicator) { [self] in
             settings.showsIndicator.toggle()
             onSettingsChanged()
         })
-        menu.addItem(action("Custom Words…") { [self] in editCustomWords() })
         menu.addItem(checked("Launch at Login", loginItem.isEnabled) { [self] in
             do {
                 try loginItem.setEnabled(!loginItem.isEnabled)
