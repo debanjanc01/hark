@@ -5,7 +5,8 @@ import Accelerate
 /// A frame counts as near-field speech when all of these hold:
 /// - it is `gateDB` louder than the room's running background level, so distant
 ///   voices, a TV or a fan don't register;
-/// - most of its energy is in the voice band (250–4000 Hz), which rejects hum and hiss;
+/// - most of its energy is in the voice band (150–4000 Hz), which rejects hiss, and some of it
+///   is above 300 Hz where speech formants live, which rejects hum;
 /// - its spectrum is peaky rather than flat (low spectral flatness), as voiced speech is.
 ///
 /// `level` is 0 for anything else, and 0.25...1 for speech, scaled by loudness.
@@ -25,7 +26,8 @@ public struct VoiceMeter {
     private static let fftSize = 512
     private static let binHz = Float(Transcriber.sampleRate) / Float(fftSize)
     private static let analysisBins = bins(from: 150, to: 8000)  // ignores rumble below 150 Hz
-    private static let voiceBins = bins(from: 250, to: 4000)
+    private static let voiceBins = bins(from: 150, to: 4000)  // deep voices have strong harmonics below 250 Hz
+    private static let formantBins = bins(from: 300, to: 4000)  // speech always has energy here; hum doesn't
 
     private let fft = vDSP.FFT(log2n: 9, radix: .radix2, ofType: DSPSplitComplex.self)!
     private let window = vDSP.window(ofType: Float.self, usingSequence: .hanningDenormalized,
@@ -90,6 +92,7 @@ public struct VoiceMeter {
 
         let total = vDSP.sum(power[Self.analysisBins])
         let voice = vDSP.sum(power[Self.voiceBins])
+        let formants = vDSP.sum(power[Self.formantBins])
         let db = 10 * log10(max(total, 1e-12))
         if warmupFrames > 0 {
             warmupFrames -= 1
@@ -99,12 +102,15 @@ public struct VoiceMeter {
 
         let room = roomDB ?? db
         let above = db - room - gateDB
-        let isSpeech = above > 0 && voice / max(total, 1e-12) > 0.6 && voiceFlatness() < 0.4
+        let isSpeech = above > 0
+            && voice / max(total, 1e-12) > 0.6
+            && formants / max(total, 1e-12) > 0.1
+            && voiceFlatness() < 0.4
         level = isSpeech ? min(1, 0.25 + above / 18) : 0
 
-        // Learn the background level from everything except the person's speech: it falls
-        // quickly and rises slowly, so it settles on the room's steady noise.
-        if !isSpeech {
+        // Learn the background level from quiet frames only (never from speech or anything
+        // loud): it falls quickly and rises slowly, so it settles on the room's steady noise.
+        if above <= 0 {
             roomDB = room + (db - room) * (db < room ? 0.05 : 0.008)
         }
         if isSpeech { speechFrames += 1 }
