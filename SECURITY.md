@@ -1,0 +1,26 @@
+# Security
+
+## What Hark does with your data
+
+- **Audio never leaves your Mac.** Transcription runs on-device with the Whistle model.
+  Hark contains no networking code, and the bundled Needle engine has none either.
+- **The mic is only open while you hold the hotkey.** A new audio session is created per
+  dictation and torn down when you let go; recordings are kept in memory only, never written to disk.
+- **Transcripts are not logged.** Unified logging marks transcript text `private`, so it is
+  redacted unless you explicitly enable private data logging.
+- **Clipboard.** Hark pastes via the clipboard, marking the item transient/concealed
+  (per [nspasteboard.org](http://nspasteboard.org)) so clipboard managers skip it, and restores
+  your previous clipboard afterwards unless something else wrote to it in the meantime.
+- **The hotkey listener is listen-only.** It reads modifier keys and key-down events to detect the
+  hotkey, and never modifies or records keystrokes.
+
+## Supply chain
+
+`scripts/fetch-deps.sh` downloads the Needle engine and the Whistle model at pinned upstream
+revisions and refuses any file whose SHA-256 doesn't match. Release builds are signed with the
+hardened runtime; the only entitlement is microphone input.
+
+## Reporting a vulnerability
+
+Please use GitHub's [private vulnerability reporting](../../security/advisories/new) rather than
+a public issue.

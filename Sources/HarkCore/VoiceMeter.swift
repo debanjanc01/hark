@@ -1,0 +1,108 @@
+import Accelerate
+
+/// Measures how loudly *the person at the mic* is speaking, in 30 ms frames of 16 kHz audio.
+///
+/// A frame counts as near-field speech when all of these hold:
+/// - it is `gateDB` louder than the room's running background level, so distant
+///   voices, a TV or a fan don't register;
+/// - most of its energy is in the voice band (250–4000 Hz), which rejects hum and hiss;
+/// - its spectrum is peaky rather than flat (low spectral flatness), as voiced speech is.
+///
+/// `level` is 0 for anything else, and 0.25...1 for speech, scaled by loudness.
+/// Not thread-safe: feed and read it from one thread or under a lock.
+public struct VoiceMeter {
+    public static let frameSize = 480  // 30 ms at 16 kHz
+
+    public var gateDB: Float
+    public private(set) var level: Float = 0
+    /// Whether any frame since the last `reset()` was near-field speech.
+    public private(set) var heardSpeech = false
+
+    private static let fftSize = 512
+    private static let binHz = Float(Transcriber.sampleRate) / Float(fftSize)
+    private static let analysisBins = bins(from: 150, to: 8000)  // ignores rumble below 150 Hz
+    private static let voiceBins = bins(from: 250, to: 4000)
+
+    private let fft = vDSP.FFT(log2n: 9, radix: .radix2, ofType: DSPSplitComplex.self)!
+    private let window = vDSP.window(ofType: Float.self, usingSequence: .hanningDenormalized,
+                                     count: frameSize, isHalfWindow: false)
+    private var pending: [Float] = []
+    private var frame = [Float](repeating: 0, count: fftSize)
+    private var real = [Float](repeating: 0, count: fftSize / 2)
+    private var imag = [Float](repeating: 0, count: fftSize / 2)
+    private var power = [Float](repeating: 0, count: fftSize / 2)
+    private var logs = [Float](repeating: 0, count: voiceBins.count)
+    private var roomDB: Float?
+
+    public init(gateDB: Float = 6) {
+        self.gateDB = gateDB
+        pending.reserveCapacity(4 * Self.frameSize)
+    }
+
+    public mutating func reset() {
+        pending.removeAll(keepingCapacity: true)
+        roomDB = nil
+        level = 0
+        heardSpeech = false
+    }
+
+    /// Feeds 16 kHz mono samples; `level` reflects the most recent complete frame.
+    public mutating func feed(_ samples: UnsafeBufferPointer<Float>) {
+        pending.append(contentsOf: samples)
+        var start = 0
+        while pending.count - start >= Self.frameSize {
+            analyze(pending[start..<start + Self.frameSize])
+            start += Self.frameSize
+        }
+        pending.removeFirst(start)
+    }
+
+    public mutating func feed(_ samples: [Float]) {
+        samples.withUnsafeBufferPointer { feed($0) }
+    }
+
+    private mutating func analyze(_ samples: ArraySlice<Float>) {
+        // Windowed, zero-padded power spectrum.
+        vDSP.multiply(samples, window, result: &frame[0..<Self.frameSize])
+        real.withUnsafeMutableBufferPointer { realPtr in
+            imag.withUnsafeMutableBufferPointer { imagPtr in
+                var split = DSPSplitComplex(realp: realPtr.baseAddress!, imagp: imagPtr.baseAddress!)
+                frame.withUnsafeBufferPointer { samples in
+                    samples.baseAddress!.withMemoryRebound(to: DSPComplex.self, capacity: Self.fftSize / 2) {
+                        vDSP_ctoz($0, 2, &split, 1, vDSP_Length(Self.fftSize / 2))
+                    }
+                }
+                fft.forward(input: split, output: &split)
+                vDSP.squareMagnitudes(split, result: &power)
+            }
+        }
+
+        let total = vDSP.sum(power[Self.analysisBins])
+        let voice = vDSP.sum(power[Self.voiceBins])
+        let db = 10 * log10(max(total, 1e-12))
+
+        // Background level falls quickly and rises slowly, so speech bursts barely move it.
+        let room = roomDB ?? db
+        roomDB = room + (db - room) * (db < room ? 0.05 : 0.008)
+
+        let above = db - room - gateDB
+        let isSpeech = above > 0 && voice / max(total, 1e-12) > 0.6 && voiceFlatness() < 0.4
+        level = isSpeech ? min(1, 0.25 + above / 18) : 0
+        heardSpeech = heardSpeech || isSpeech
+    }
+
+    /// Spectral flatness of the voice band (geometric over arithmetic mean):
+    /// ~0.56 for white noise, much lower for voiced speech.
+    private mutating func voiceFlatness() -> Float {
+        let bins = Self.voiceBins
+        vDSP.clip(power[bins], to: 1e-12...Float.greatestFiniteMagnitude, result: &logs)
+        let mean = vDSP.mean(logs)
+        vForce.log(logs, result: &logs)
+        return exp(vDSP.mean(logs)) / mean
+    }
+
+    private static func bins(from low: Float, to high: Float) -> Range<Int> {
+        // Bin 0 holds DC (and the packed Nyquist term), so start at 1 and stop below fftSize / 2.
+        max(1, Int((low / binHz).rounded(.up)))..<min(fftSize / 2, Int((high / binHz).rounded(.down)) + 1)
+    }
+}
