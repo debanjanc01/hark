@@ -44,9 +44,25 @@ public enum Permission: CaseIterable, Sendable {
                 openSettings()
             }
         case .accessibility:
+            guard !AXIsProcessTrusted() else { return }
+            // Hark isn't signed with a developer certificate, so macOS ties the grant to one
+            // exact build. After an update, the Hark switched on in Settings is the old build
+            // and doesn't count. Clearing that entry makes macOS list this build instead.
+            await Self.resetAccessibilityEntry()
             // kAXTrustedCheckOptionPrompt, spelled out to avoid a non-Sendable global.
-            let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
-            if !AXIsProcessTrustedWithOptions(options) { openSettings() }
+            // The prompt it shows links to the Accessibility settings.
+            _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+        }
+    }
+
+    private nonisolated static func resetAccessibilityEntry() async {
+        guard let id = Bundle.main.bundleIdentifier else { return }
+        let reset = Process()
+        reset.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+        reset.arguments = ["reset", "Accessibility", id]
+        await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+            reset.terminationHandler = { _ in done.resume() }
+            do { try reset.run() } catch { done.resume() }
         }
     }
 
