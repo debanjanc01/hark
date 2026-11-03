@@ -61,3 +61,52 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" build/Hark-*.zip build/Hark-*.zip.sha256 \
             --title "Hark $GITHUB_REF_NAME" --generate-notes
+
+  # A Homebrew bottle (a prebuilt Hark), so `brew install` doesn't compile anything or need
+  # Xcode. Built on the oldest macOS runner, since Homebrew also uses a bottle on newer
+  # macOS versions. The tap's formula then points at it (see RELEASING.md).
+  bottle:
+    needs: release
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use the newest Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)"
+          swift --version
+
+      - name: Put this release's formula in the tap
+        run: |
+          url="https://github.com/debanjanc01/hark/archive/refs/tags/$GITHUB_REF_NAME.tar.gz"
+          sha=$(curl -fsSL "$url" | shasum -a 256 | cut -d' ' -f1)
+          brew tap debanjanc01/tap
+          brew trust --formula debanjanc01/tap/hark || true
+          sed -e "s|^  url \".*\"|  url \"$url\"|" -e "s|^  sha256 \".*\"|  sha256 \"$sha\"|" \
+            packaging/homebrew/hark.rb > "$(brew --repo debanjanc01/tap)/Formula/hark.rb"
+
+      - name: Build and test the bottle
+        env:
+          HOMEBREW_NO_INSTALL_FROM_API: 1
+        run: |
+          brew install --build-bottle debanjanc01/tap/hark
+          brew test debanjanc01/tap/hark
+          brew bottle --json --no-rebuild \
+            --root-url "https://github.com/debanjanc01/hark/releases/download/$GITHUB_REF_NAME" \
+            debanjanc01/tap/hark
+
+      - name: Upload the bottle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # brew bottle names the file hark--X.Y.Z…; Homebrew downloads it as hark-X.Y.Z….
+          json=$(ls hark--*.bottle.json)
+          local=$(jq -r '.[].bottle.tags[].local_filename' "$json")
+          remote=$(jq -r '.[].bottle.tags[].filename' "$json")
+          mv "$local" "$remote"
+          gh release upload "$GITHUB_REF_NAME" "$remote" "$json"
+          {
+            echo '### Bottle block for Formula/hark.rb'
+            echo '```ruby'
+            jq -r '.[].bottle as $b | "  bottle do\n    root_url \"\($b.root_url)\"\n" + ([$b.tags | to_entries[] | "    sha256 cellar: :\($b.cellar), \(.key): \"\(.value.sha256)\""] | join("\n")) + "\n  end"' "$json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

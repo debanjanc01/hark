@@ -34,7 +34,7 @@ open /Applications/Hark.app
 
 The first line is Homebrew's [tap trust](https://docs.brew.sh/Tap-Trust): it lets Homebrew install Hark from this tap, and nothing else from it.
 
-Or grab the zip from [Releases](https://github.com/debanjanc01/hark/releases/latest) and drag Hark to Applications. Since it isn't signed by Apple yet, macOS blocks the first launch: go to System Settings → Privacy & Security and hit **Open Anyway**. (Homebrew builds it on your Mac, so you skip this.)
+Or grab the zip from [Releases](https://github.com/debanjanc01/hark/releases/latest) and drag Hark to Applications. Since it isn't signed by Apple yet, macOS blocks the first launch: go to System Settings → Privacy & Security and hit **Open Anyway**. (Homebrew installs it without that check, so you skip this.)
 
 ## Use it
 

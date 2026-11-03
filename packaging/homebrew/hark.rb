@@ -1,11 +1,18 @@
 # Homebrew formula for Hark. Lives in the debanjanc01/homebrew-tap repository as
-# Formula/hark.rb; update `url` and `sha256` for each release.
+# Formula/hark.rb; for each release, update `url`, `sha256` and the `bottle` block
+# (the release workflow prints it). The release workflow also builds from this file.
 class Hark < Formula
   desc "Hold-to-talk dictation for macOS that runs entirely on your Mac"
   homepage "https://github.com/debanjanc01/hark"
   url "https://github.com/debanjanc01/hark/archive/refs/tags/v0.1.0.tar.gz"
   sha256 "REPLACE_WITH_RELEASE_TARBALL_SHA256"
   license "MIT"
+
+  # Prebuilt Hark (see RELEASING.md). Macs it doesn't cover build from source.
+  # bottle do
+  #   root_url "https://github.com/debanjanc01/hark/releases/download/vX.Y.Z"
+  #   sha256 cellar: :any_skip_relocation, arm64_sonoma: "…"
+  # end
 
   depends_on arch: :arm64
   depends_on macos: :ventura
