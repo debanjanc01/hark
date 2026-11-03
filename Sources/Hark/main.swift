@@ -111,7 +111,10 @@ if CommandLine.arguments.contains("--mic-check") {
 }
 
 if CommandLine.arguments.contains("--transcribe") {
-    Task(priority: .userInitiated) { exit(await transcribeFromCommandLine(CommandLine.arguments)) }
+    // Read the arguments here: Swift 6.0 rejects touching CommandLine from inside the task.
+    Task(priority: .userInitiated) { [arguments = CommandLine.arguments] in
+        exit(await transcribeFromCommandLine(arguments))
+    }
     dispatchMain()
 }
 
