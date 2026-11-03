@@ -20,7 +20,9 @@ enum Fixtures {
 
         let say = Process()
         say.executableURL = URL(fileURLWithPath: "/usr/bin/say")
-        say.arguments = ["-o", url.path, "--data-format=LEF32@16000", text]
+        // HARK_TEST_VOICE picks a specific system voice (e.g. to reproduce a CI-only failure).
+        let voice = ProcessInfo.processInfo.environment["HARK_TEST_VOICE"].map { ["-v", $0] } ?? []
+        say.arguments = voice + ["-o", url.path, "--data-format=LEF32@16000", text]
         try say.run()
         say.waitUntilExit()
         return try AudioFile.samples(at: url)

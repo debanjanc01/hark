@@ -39,7 +39,7 @@ struct VoiceMeterTests {
         let audio = Fixtures.mix(room, voice, at: Transcriber.sampleRate)
 
         let output = levels(audio, meter: &meter)
-        let leadIn = output.prefix(output.count * 1 / 4 - 2)  // the first second: room only
+        let leadIn = output.prefix(Transcriber.sampleRate / 341 - 1)  // the first second: room only
         #expect(leadIn.allSatisfy { $0 == 0 })
         #expect(meter.heardSpeech)
         #expect(output.contains { $0 > 0.5 })
