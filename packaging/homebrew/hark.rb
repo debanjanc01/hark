@@ -1,8 +1,8 @@
 # Homebrew cask for Hark. Lives in the debanjanc01/homebrew-tap repository as Casks/hark.rb;
 # for each release, update `version` and `sha256` (from the release's Hark-x.y.z.zip.sha256).
 cask "hark" do
-  version "0.2.8"
-  sha256 "c7947e6565a78d15de1e5d739bb4806715df4ef5280498f3e32e9bad225d30ef"
+  version "0.2.10"
+  sha256 "6dfb7763fc354d17c28badc9f76e0ded47f8a1b98bfd11d1aefc3dd68130dc67"
 
   url "https://github.com/debanjanc01/hark/releases/download/v#{version}/Hark-#{version}.zip"
   name "Hark"
