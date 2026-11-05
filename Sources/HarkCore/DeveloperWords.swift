@@ -110,11 +110,11 @@ public struct DeveloperWords: Sendable, Equatable {
                     } else if rule.risky {
                         accepted = inContext && similarity >= 0.85
                     } else {
-                        let odd = span.contains(where: isOdd)
+                        let odd = span.contains { isOdd($0) }
                         accepted = (inContext && (odd || unsure))
                             || (whole && similarity >= 0.70 && (odd || unsure))
                             || (odd && similarity >= 0.85 && unsure)
-                            || (similarity >= 0.95 && span.allSatisfy(isOdd))
+                            || (similarity >= 0.95 && span.allSatisfy { isOdd($0) })
                     }
                     if accepted { matches.append((similarity, start, count, rule.term)) }
                 }
