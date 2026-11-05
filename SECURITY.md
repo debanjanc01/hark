@@ -8,6 +8,8 @@
   dictation and torn down when you let go; recordings are kept in memory only, never written to disk.
 - **Transcripts are not logged.** Unified logging marks transcript text `private`, so it is
   redacted unless you explicitly enable private data logging.
+- **Developer words.** Fixing these happens on your Mac. Words that sound like a term are checked
+  against macOS's built-in spell checker, using the same system service as other apps.
 - **Clipboard.** Hark pastes via the clipboard, marking the item transient/concealed
   (per [nspasteboard.org](http://nspasteboard.org)) so clipboard managers skip it, and restores
   your previous clipboard afterwards unless something else wrote to it in the meantime. If no app

@@ -6,6 +6,14 @@ public struct Transcript: Sendable, Equatable, Decodable {
     public let text: String
     /// ISO 639-1 code of the language used, or empty for silence/noise.
     public let language: String
+    /// The text, word by word. Absent for silence.
+    public let words: [Word]?
+
+    public struct Word: Sendable, Equatable, Decodable {
+        public let word: String
+        /// How sure the model was of this word, from 0 to 1.
+        public let probability: Double?
+    }
 }
 
 public enum TranscriberError: Error, Equatable, LocalizedError {
@@ -69,7 +77,7 @@ public actor Transcriber {
             withOptionalCString(language) { language in
                 withOptionalCString(keywords) { keywords in
                     output.withUnsafeMutableBufferPointer { out in
-                        needle_transcribe(pcm.baseAddress, Int32(pcm.count), language, keywords, 0,
+                        needle_transcribe(pcm.baseAddress, Int32(pcm.count), language, keywords, 1,
                                           out.baseAddress, Int32(out.count))
                     }
                 }

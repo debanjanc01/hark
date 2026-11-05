@@ -47,7 +47,7 @@ Installed Hark with `brew install debanjanc01/tap/hark` before? Switch with `bre
 
 Works in any app: your editor, terminal, browser, Slack, Claude Code. Dictate twice in a row and Hark adds the space between sentences for you.
 
-From the menu bar icon, or the window you get by opening Hark again, you can change the hotkey (Right Option, Right Command or Fn), set the language, add **Custom Words** (names and jargon Hark keeps mishearing, like a teammate's name), hide the pill, or launch at login.
+From the menu bar icon, or the window you get by opening Hark again, you can change the hotkey (Right Option, Right Command or Fn), set the language, add **Custom Words** (names and jargon Hark keeps mishearing, like a teammate's name), see or turn off **Developer Words**, hide the pill, or launch at login.
 
 On first launch Hark opens a small window asking for **Microphone** (to hear you) and **Accessibility** (to notice the hotkey in any app and paste the text). Open Hark again anytime to bring that window back.
 
@@ -56,6 +56,7 @@ On first launch Hark opens a small window asking for **Microphone** (to hear you
 - **7 languages:** English, German, French, Spanish, Italian, Dutch and Polish. Defaults to your Mac's language, or switch to auto-detect.
 - **Ignores the room.** Fan noise, hum and distant voices don't count as you talking, and if that's all Hark heard, nothing gets pasted. Someone talking right next to your mic can still get picked up, though.
 - **Names and accents.** It's a small model, so it can trip on names ("Priya" → "Prea") and accent-dependent words. Add those to Custom Words and it gets them right.
+- **Developer words.** Hark comes with 20 terms it fixes when it mishears them in English, like `kubectl`, `k8s`, Docker Desktop and Postgres. It only swaps a term in when what it heard sounds close and the other clues agree, such as the words around it, so everyday sentences stay as they are. It still misses some: if it keeps writing the same wrong thing, add that to the term's line (`kubectl: cube cattle`) and it's always replaced. Your Custom Words win over this list. See, edit or turn it off under Developer Words.
 - **The mic is only on while you hold the key.** Audio is never saved. Your clipboard is restored after pasting (if a paste fails, the text stays on it for you to paste by hand). More in [SECURITY.md](SECURITY.md).
 - **Want the biggest model instead?** If you need the most accuracy on hard audio, many languages, or AI rewriting of what you said, a heavier app running a large model is the better pick. Hark is for fast, everyday dictation with the smallest footprint.
 

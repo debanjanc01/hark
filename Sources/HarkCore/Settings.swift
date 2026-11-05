@@ -64,6 +64,29 @@ public final class Settings {
         }
     }
 
+    /// Whether to fix misheard developer terms. On out of the box, and easy to see and turn off.
+    public var fixesDeveloperWords: Bool {
+        get { defaults.object(forKey: "fixesDeveloperWords") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "fixesDeveloperWords") }
+    }
+
+    /// The list as the person edits it. Saved only once it differs from the built-in one,
+    /// so an untouched list picks up improvements in later versions.
+    public var developerWordsList: String {
+        get { defaults.string(forKey: "developerWords") ?? DeveloperWords.defaults.list }
+        set {
+            if DeveloperWords(list: newValue) == .defaults {
+                defaults.removeObject(forKey: "developerWords")
+            } else {
+                defaults.set(newValue, forKey: "developerWords")
+            }
+        }
+    }
+
+    public var developerWords: DeveloperWords {
+        DeveloperWords(list: developerWordsList)
+    }
+
     /// The choices for `language`, with their names in the person's language.
     public static var languageChoices: [(code: String?, name: String)] {
         [(nil, "Auto-Detect")] + Transcriber.languages.map { code in

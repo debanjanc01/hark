@@ -184,10 +184,12 @@ final class DictationController {
         // "Hark" isn't a dictionary word, so without a nudge the model writes "Harke" or "Park".
         // Biasing towards it doesn't turn "park", "hug" or "hawk" into "Hark".
         let keywords = settings.keywords.contains("Hark") ? settings.keywords : ["Hark"] + settings.keywords
+        let developerWords = settings.fixesDeveloperWords ? settings.developerWords : nil
         Task(priority: .userInitiated) {
             do {
                 let transcript = try await transcriber.transcribe(samples, language: language, keywords: keywords)
-                let text = transcript.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                let corrected = developerWords?.correct(transcript, keeping: keywords) ?? transcript.text
+                let text = corrected.trimmingCharacters(in: .whitespacesAndNewlines)
                 Self.log.info("""
                     Transcribed \(Double(samples.count) / Double(Transcriber.sampleRate), format: .fixed(precision: 1))s \
                     in \(ContinuousClock.now - start, privacy: .public): \(text, privacy: .private)

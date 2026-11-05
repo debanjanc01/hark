@@ -9,6 +9,9 @@ struct TranscriberTests {
         let transcript = try await transcriber.transcribe(audio, language: "en")
         #expect(transcript.text.lowercased().contains("quick brown fox"))
         #expect(transcript.language == "en")
+        let words = try #require(transcript.words)
+        #expect(words.map(\.word).joined(separator: " ") == transcript.text)
+        #expect(words.allSatisfy { ($0.probability ?? -1) >= 0 })
     }
 
     @Test func detectsLanguageWhenNotGiven() async throws {

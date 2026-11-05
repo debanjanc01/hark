@@ -179,6 +179,19 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
         wordsColumn.alignment = .leading
         wordsColumn.spacing = 4
 
+        let developerWords = NSButton(checkboxWithTitle: "Fix terms like kubectl and Docker Desktop",
+                                      target: self, action: #selector(toggleDeveloperWords))
+        developerWords.state = settings.fixesDeveloperWords ? .on : .off
+        let developerHint = label("""
+            Comes with \(settings.developerWords.entries.count) words. Turn it off if you don't dictate code.
+            """, style: .callout, width: 280)
+        developerHint.textColor = .secondaryLabelColor
+        let developerList = NSButton(title: "See and Edit the List…", target: self, action: #selector(editDeveloperWords))
+        let developerColumn = NSStackView(views: [developerWords, developerHint, developerList])
+        developerColumn.orientation = .vertical
+        developerColumn.alignment = .leading
+        developerColumn.spacing = 4
+
         let indicator = NSButton(checkboxWithTitle: "Show On-Screen Indicator",
                                  target: self, action: #selector(toggleIndicator))
         indicator.state = settings.showsIndicator ? .on : .off
@@ -188,6 +201,7 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
             [label("Hotkey", width: 104), hotkey],
             [label("Language", width: 104), language],
             [label("Custom words", width: 104), wordsColumn],
+            [label("Developer words", width: 104), developerColumn],
             [NSGridCell.emptyContentView, indicator],
             [NSGridCell.emptyContentView, launchAtLogin],
         ])
@@ -227,6 +241,14 @@ final class SetupWindow: NSObject, NSTextFieldDelegate {
 
     @objc private func changeLanguage(_ sender: NSPopUpButton) {
         settings.language = Settings.languageChoices[sender.indexOfSelectedItem].code
+    }
+
+    @objc private func toggleDeveloperWords(_ sender: NSButton) {
+        settings.fixesDeveloperWords = sender.state == .on
+    }
+
+    @objc private func editDeveloperWords() {
+        if DeveloperWordsEditor.run(settings: settings) { settingsChanged() }
     }
 
     @objc private func showAbout() {

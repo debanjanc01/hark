@@ -80,6 +80,15 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             }
         }))
         menu.addItem(action("Custom Words…") { [self] in editCustomWords() })
+        menu.addItem(submenu("Developer Words", [
+            checked("Fix Developer Words", settings.fixesDeveloperWords) { [self] in
+                settings.fixesDeveloperWords.toggle()
+                onSettingsChanged()
+            },
+            action("See and Edit the List…") { [self] in
+                if DeveloperWordsEditor.run(settings: settings) { onSettingsChanged() }
+            },
+        ]))
         menu.addItem(checked("Show On-Screen Indicator", settings.showsIndicator) { [self] in
             settings.showsIndicator.toggle()
             onSettingsChanged()

@@ -18,8 +18,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// `Hark --transcribe <audio file> [--language en] [--keywords "Priya,Kubernetes"] [--repeat N]`:
-/// transcribes a file and prints the result with timings as JSON.
+/// `Hark --transcribe <audio file> [--language en] [--keywords "Priya,Kubernetes"] [--repeat N]
+/// [--developer-words]`: transcribes a file and prints the result with timings as JSON.
 func transcribeFromCommandLine(_ arguments: [String]) async -> Int32 {
     guard let index = arguments.firstIndex(of: "--transcribe"), index + 1 < arguments.count else { return 2 }
     func value(_ flag: String) -> String? { arguments.firstIndex(of: flag).flatMap { arguments[safe: $0 + 1] } }
@@ -40,8 +40,12 @@ func transcribeFromCommandLine(_ arguments: [String]) async -> Int32 {
             transcript = try await transcriber!.transcribe(samples, language: language, keywords: keywords)
             runs.append((clock.now - start) / .milliseconds(1))
         }
+        var text = transcript?.text
+        if arguments.contains("--developer-words"), let transcript {
+            text = await DeveloperWords.defaults.correct(transcript, keeping: keywords)
+        }
         let result: [String: Any] = [
-            "text": transcript?.text ?? "",
+            "text": text ?? "",
             "language": transcript?.language ?? "",
             "audio_seconds": Double(samples.count) / Double(Transcriber.sampleRate),
             "load_ms": loadTime / .milliseconds(1),
