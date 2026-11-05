@@ -10,7 +10,8 @@
   redacted unless you explicitly enable private data logging.
 - **Clipboard.** Hark pastes via the clipboard, marking the item transient/concealed
   (per [nspasteboard.org](http://nspasteboard.org)) so clipboard managers skip it, and restores
-  your previous clipboard afterwards unless something else wrote to it in the meantime.
+  your previous clipboard afterwards unless something else wrote to it in the meantime. If no app
+  takes the text, it stays on the clipboard as a normal copy instead, so you can paste it by hand.
 - **The hotkey listener is listen-only.** It reads modifier keys and key-down events to detect the
   hotkey, and never modifies or records keystrokes.
 

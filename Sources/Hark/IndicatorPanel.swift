@@ -3,13 +3,20 @@ import QuartzCore
 
 /// A click-through pill near the bottom of the screen: a pulsing red dot, "Listening…"
 /// and live voice bars while recording; a spinner and "Transcribing…" afterwards.
+/// Grows into a card with the transcript when it couldn't be pasted.
 @MainActor
 final class IndicatorPanel {
     private static let size = NSSize(width: 200, height: 44)
+    private static let cardWidth: CGFloat = 360
+    private static let cardInset: CGFloat = 16
+    private static let cardDuration: Duration = .seconds(8)
     private static let barCount = 5
     private static let barWeights: [CGFloat] = [0.55, 0.8, 1.0, 0.8, 0.55]
 
     private let panel: NSPanel
+    private let background: NSVisualEffectView
+    private let card: NSStackView
+    private let cardTranscript = NSTextField(wrappingLabelWithString: "")
     private let dot = CALayer()
     private let spinner: NSProgressIndicator
     private let label = NSTextField(labelWithString: "")
@@ -32,6 +39,7 @@ final class IndicatorPanel {
         panel.appearance = NSAppearance(named: .vibrantDark)
 
         let background = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
+        self.background = background
         background.material = .hudWindow
         background.state = .active
         background.wantsLayer = true
@@ -71,6 +79,30 @@ final class IndicatorPanel {
             background.layer?.addSublayer(bar)
             return bar
         }
+
+        let cardTitle = NSTextField(labelWithString: "Couldn’t paste. Your text is copied.")
+        cardTitle.font = .systemFont(ofSize: 13, weight: .semibold)
+        cardTitle.textColor = .white
+        cardTranscript.font = .systemFont(ofSize: 13)
+        cardTranscript.textColor = .white.withAlphaComponent(0.8)
+        cardTranscript.maximumNumberOfLines = 3
+        cardTranscript.cell?.truncatesLastVisibleLine = true
+        cardTranscript.preferredMaxLayoutWidth = Self.cardWidth - 2 * Self.cardInset
+        let cardHint = NSTextField(labelWithString: "Click where you want it and press ⌘V.")
+        cardHint.font = .systemFont(ofSize: 12)
+        cardHint.textColor = .white.withAlphaComponent(0.6)
+        card = NSStackView(views: [cardTitle, cardTranscript, cardHint])
+        card.orientation = .vertical
+        card.alignment = .leading
+        card.spacing = 6
+        card.isHidden = true
+        card.translatesAutoresizingMaskIntoConstraints = false
+        background.addSubview(card)
+        NSLayoutConstraint.activate([
+            card.leadingAnchor.constraint(equalTo: background.leadingAnchor, constant: Self.cardInset),
+            card.widthAnchor.constraint(equalToConstant: Self.cardWidth - 2 * Self.cardInset),
+            card.topAnchor.constraint(equalTo: background.topAnchor, constant: Self.cardInset - 2),
+        ])
     }
 
     func showListening() {
@@ -89,6 +121,23 @@ final class IndicatorPanel {
     func showMessage(_ text: String) {
         show(text, listening: false)
         hide(after: .seconds(1.5))
+    }
+
+    /// Shows the start of a transcript that's on the clipboard, because it couldn't be pasted.
+    func showNotPasted(_ transcript: String) {
+        hideTask?.cancel()
+        spinner.stopAnimation(nil)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        dot.isHidden = true
+        bars.forEach { $0.isHidden = true }
+        CATransaction.commit()
+        label.isHidden = true
+        cardTranscript.stringValue = transcript
+        card.isHidden = false
+        card.layoutSubtreeIfNeeded()
+        place(size: NSSize(width: Self.cardWidth, height: card.fittingSize.height + 2 * (Self.cardInset - 2)), cornerRadius: 14)
+        hide(after: Self.cardDuration)
     }
 
     func hide(after delay: Duration = .zero) {
@@ -128,12 +177,19 @@ final class IndicatorPanel {
         bars.forEach { $0.isHidden = !listening }
         CATransaction.commit()
         spinner.stopAnimation(nil)
+        card.isHidden = true
+        label.isHidden = false
+        place(size: Self.size, cornerRadius: Self.size.height / 2)
+    }
 
+    private func place(size: NSSize, cornerRadius: CGFloat) {
+        background.layer?.cornerRadius = cornerRadius
         // Show it on the screen the person is working on (where the pointer is).
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
         if let frame = screen?.visibleFrame {
-            panel.setFrameOrigin(NSPoint(x: frame.midX - Self.size.width / 2, y: frame.minY + 90))
+            panel.setFrame(NSRect(x: frame.midX - size.width / 2, y: frame.minY + 90, width: size.width, height: size.height),
+                           display: true)
         }
         panel.orderFrontRegardless()
     }

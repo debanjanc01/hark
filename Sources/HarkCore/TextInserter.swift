@@ -14,14 +14,20 @@ public enum TextInserter {
     ]
     private static let vKeyCode: CGKeyCode = 9
 
-    public static func insert(_ text: String, restoreAfter delay: Duration = .milliseconds(400)) async {
-        let text = leadingSpace(after: characterBeforeCaret(), for: text) + text
+    /// Returns false if no app took the text. It's left on the clipboard then, to paste by hand.
+    @discardableResult
+    public static func insert(_ text: String, restoreAfter delay: Duration = .milliseconds(400),
+                              waitForPasteUpTo patience: Duration = .seconds(1)) async -> Bool {
+        let spaced = leadingSpace(after: characterBeforeCaret(), for: text) + text
         let pasteboard = NSPasteboard.general
         let saved = snapshot(pasteboard)
 
+        // ⌘V reports nothing back, so promise the text instead of writing it: the app that
+        // really pastes has to ask for it, and with no text field in focus nobody does.
+        let promise = PromisedText(spaced)
         pasteboard.clearContents()
         let item = NSPasteboardItem()
-        item.setString(text, forType: .string)
+        item.setDataProvider(promise, forTypes: [.string])
         for type in markerTypes { item.setData(Data(), forType: type) }
         pasteboard.writeObjects([item])
         let ourChange = pasteboard.changeCount
@@ -30,10 +36,21 @@ public enum TextInserter {
 
         // Give the target app time to read the clipboard, then put the person's
         // clipboard back — unless something else has written to it meanwhile.
+        let start = ContinuousClock.now
         try? await Task.sleep(for: delay)
-        guard pasteboard.changeCount == ourChange else { return }
+        while !promise.wasRead, ContinuousClock.now - start < patience {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        guard promise.wasRead else {
+            // A real copy now: plain text that outlives the promise, with no markers.
+            pasteboard.clearContents()
+            pasteboard.setString(text, forType: .string)
+            return false
+        }
+        guard pasteboard.changeCount == ourChange else { return true }
         pasteboard.clearContents()
         if !saved.isEmpty { pasteboard.writeObjects(saved) }
+        return true
     }
 
     /// A space when the text would otherwise run into the word before the caret,
@@ -86,5 +103,20 @@ public enum TextInserter {
             event?.flags = .maskCommand
             event?.post(tap: .cghidEventTap)
         }
+    }
+}
+
+/// Clipboard text that's handed over when an app asks for it, and remembers being asked.
+private final class PromisedText: NSObject, NSPasteboardItemDataProvider {
+    private let text: String
+    private(set) var wasRead = false
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    func pasteboard(_ pasteboard: NSPasteboard?, item: NSPasteboardItem, provideDataForType type: NSPasteboard.PasteboardType) {
+        wasRead = true
+        item.setString(text, forType: type)
     }
 }

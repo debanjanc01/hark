@@ -197,7 +197,9 @@ final class DictationController {
                     setup.noSpeechHeard()
                 } else {
                     returnToIdle()
-                    await TextInserter.insert(text)
+                    let pasted = await TextInserter.insert(text)
+                    // Shown even with the indicator hidden: otherwise the text just seems lost.
+                    if !pasted, case .idle = state { indicator.showNotPasted(text) }
                 }
             } catch {
                 Self.log.error("\(error.localizedDescription, privacy: .public)")

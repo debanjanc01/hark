@@ -56,14 +56,14 @@ On first launch Hark opens a small window asking for **Microphone** (to hear you
 - **7 languages:** English, German, French, Spanish, Italian, Dutch and Polish. Defaults to your Mac's language, or switch to auto-detect.
 - **Ignores the room.** Fan noise, hum and distant voices don't count as you talking, and if that's all Hark heard, nothing gets pasted. Someone talking right next to your mic can still get picked up, though.
 - **Names and accents.** It's a small model, so it can trip on names ("Priya" → "Prea") and accent-dependent words. Add those to Custom Words and it gets them right.
-- **The mic is only on while you hold the key.** Audio is never saved. Your clipboard is restored after pasting. More in [SECURITY.md](SECURITY.md).
+- **The mic is only on while you hold the key.** Audio is never saved. Your clipboard is restored after pasting (if a paste fails, the text stays on it for you to paste by hand). More in [SECURITY.md](SECURITY.md).
 - **Want the biggest model instead?** If you need the most accuracy on hard audio, many languages, or AI rewriting of what you said, a heavier app running a large model is the better pick. Hark is for fast, everyday dictation with the smallest footprint.
 
 ## Something off?
 
 - **Nothing happens when I hold the key:** open Hark again. The window shows what's missing.
 - **No menu bar icon:** your menu bar is full and macOS hid it behind the notch. Hold ⌘ and drag other icons off to make room.
-- **The pill shows but no text appears:** turn on Accessibility for Hark.
+- **"Couldn't paste":** no app took the text, usually because nothing you can type in was selected. It's on your clipboard: click where you want it and press ⌘V. If this happens everywhere, turn on Accessibility for Hark.
 - **"No speech heard":** move a bit closer to the mic, and check the right input is picked in System Settings → Sound.
 - **First word cut off, or not sure the mic works?** Run `/Applications/Hark.app/Contents/MacOS/Hark --mic-check`. It shows how fast recording starts (about 150 ms is normal).
 - **Asked for permissions again after an update:** that's expected until Hark is signed by Apple, since macOS ties permissions to each build. Click **Allow…** in Hark's window again; it clears the old entry for you.
